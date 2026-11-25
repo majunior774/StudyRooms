@@ -189,5 +189,13 @@ mongoose.connect(process.env.MONGO_URI)
         
     })
     .catch((err) => {
-        console.error("MongoDB connection failed:", err);
+        const serverErrors = Array.from(err.reason?.servers ?? [], ([address, server]) => ({
+            address,
+            type: server.type,
+            error: server.error?.message,
+        }));
+        console.error("MongoDB connection failed:", {
+            message: err.message,
+            servers: serverErrors,
+        });
     });
