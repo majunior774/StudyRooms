@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import StudyRoomsBrand from '../components/StudyRoomsBrand';
 
 export default function PreJoinLobby({
   roomId,
+  accountDisplayName = '',
   localVideoRef,
   cameraReady,
   cameraSwitching,
@@ -17,8 +18,12 @@ export default function PreJoinLobby({
   const [copied, setCopied] = useState(false);
 
   const [displayName, setDisplayName] = useState(() => {
-    return localStorage.getItem('sr_display_name') || '';
+    return accountDisplayName || localStorage.getItem('sr_display_name') || '';
   });
+
+  useEffect(() => {
+    if (accountDisplayName) setDisplayName(accountDisplayName);
+  }, [accountDisplayName]);
 
   const toggleMic = () => {
     const stream = localVideoRef.current?.srcObject;

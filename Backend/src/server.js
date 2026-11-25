@@ -6,14 +6,44 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import StreamRouter from "./Routes/StreamRoute.js";
+import AuthRouter from "./Routes/AuthRoute.js";
+import WorkspaceRouter from "./Routes/WorkspaceRoute.js";
 import registerWhiteboardHandlers from "./whiteboard.js";
 import registerYouTubeHandlers from "./youtube.js";
 
 dotenv.config();
 
 const app = express();
-app.use(cors());
+const frontendOrigins = (process.env.FRONTEND_ORIGIN || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+app.use(cors({
+    origin(origin, callback) {
+        if (!origin || process.env.NODE_ENV !== "production" || frontendOrigins.includes(origin)) {
+            callback(null, true);
+            return;
+        }
+        callback(null, false);
+    },
+    credentials: true,
+}));
 app.use(express.json());
+
+app.use("/api", (req, res, next) => {
+    const requestOrigin = req.get("Origin");
+    if (process.env.NODE_ENV === "production" && requestOrigin && !frontendOrigins.includes(requestOrigin)) {
+        res.status(403).json({ error: "This website is not allowed to use the account API." });
+        return;
+    }
+    if (mongoose.connection.readyState !== 1) {
+        res.status(503).json({ error: "The account database is not available yet." });
+        return;
+    }
+    next();
+});
+app.use("/api/auth", AuthRouter);
+app.use("/api/workspace", WorkspaceRouter);
 
 //socket.io configration
 const server = createServer(app);

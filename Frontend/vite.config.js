@@ -11,6 +11,10 @@ export default defineConfig(({ mode }) => {
     server: {
       host: '0.0.0.0',
       proxy: {
+        '/api': {
+          target: env.VITE_SERVER_LOCAL || 'http://127.0.0.1:5000',
+          changeOrigin: true,
+        },
         '/socket.io': {
           target: env.VITE_SERVER_LOCAL || 'http://127.0.0.1:5000',
           ws: true,

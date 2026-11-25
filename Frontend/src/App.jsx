@@ -5,6 +5,11 @@ import VideoCall from './pages/video_call';
 import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import PreJoinLobby from './pages/PreJoinLobby';
+import AuthPage from './pages/AuthPage';
+
+const apiBaseUrl = import.meta.env.DEV
+  ? ''
+  : (import.meta.env.VITE_SERVER_URL || '').replace(/\/$/, '');
 
 const waitForStablePeer = (peer) => {
   if (peer.signalingState === 'stable') return Promise.resolve();
@@ -125,12 +130,16 @@ function App() {
     if (roomParam) {
       return { view: 'lobby', room: roomParam };
     }
-    return { view: 'landing', room: '' };
+    return { view: 'auth', room: '' };
   };
 
   const [initial] = useState(getInitialState);
-  const [currentView, setCurrentView] = useState(initial.view); // 'landing' | 'dashboard' | 'lobby' | 'room'
+  const [currentView, setCurrentView] = useState(initial.view); // 'auth' | 'landing' | 'dashboard' | 'lobby' | 'room'
   const [roomId, setRoomId] = useState(initial.room);
+  const [authUser, setAuthUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authServiceError, setAuthServiceError] = useState('');
+  const authUserRef = useRef(null);
 
   // Device & Camera State
   const [cameraFacingMode, setCameraFacingMode] = useState('user');
@@ -201,12 +210,41 @@ function App() {
       } else {
         setRoomId('');
         roomIdRef.current = '';
-        setCurrentView('landing');
+        setCurrentView(authUserRef.current ? 'dashboard' : 'auth');
       }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${apiBaseUrl}/api/auth/me`, { credentials: 'include' })
+      .then(async (response) => {
+        if (response.status === 401) return null;
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || 'Could not check your account session.');
+        return result.user;
+      })
+      .then((user) => {
+        if (cancelled) return;
+        authUserRef.current = user;
+        setAuthUser(user);
+        setAuthServiceError('');
+        if (user && initial.view === 'auth') setCurrentView('dashboard');
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        authUserRef.current = null;
+        setAuthUser(null);
+        setAuthServiceError('Account service is unavailable. Start the backend and connect MongoDB, then try again.');
+        console.error('Could not restore StudyRooms account session:', error);
+      })
+      .finally(() => {
+        if (!cancelled) setAuthLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [initial.view]);
 
   // ─── Camera Access (Only triggered in Lobby or Meeting) ───
   const startCamera = useCallback(async () => {
@@ -904,7 +942,7 @@ function App() {
     window.history.pushState({}, '', window.location.pathname);
     setRoomId('');
     roomIdRef.current = '';
-    setCurrentView('dashboard');
+    setCurrentView(authUserRef.current ? 'dashboard' : 'auth');
   }, []);
 
   const handleLeaveMeeting = useCallback(() => {
@@ -945,8 +983,51 @@ function App() {
     window.history.pushState({}, '', window.location.pathname);
     setRoomId('');
     roomIdRef.current = '';
+    setCurrentView(authUserRef.current ? 'dashboard' : 'auth');
+  }, []);
+
+  const handleAuthenticated = useCallback((user) => {
+    authUserRef.current = user;
+    setAuthUser(user);
+    setAuthServiceError('');
+    window.history.replaceState({}, '', window.location.pathname);
     setCurrentView('dashboard');
   }, []);
+
+  const handleSessionExpired = useCallback(() => {
+    authUserRef.current = null;
+    setAuthUser(null);
+    setCurrentView('auth');
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await fetch(`${apiBaseUrl}/api/auth/logout`, { method: 'POST', credentials: 'include' });
+    } catch (error) {
+      console.error('Could not reach the logout endpoint:', error);
+    } finally {
+      handleSessionExpired();
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [handleSessionExpired]);
+
+  const handleUpdateDisplayName = useCallback(async (displayName) => {
+    const response = await fetch(`${apiBaseUrl}/api/auth/me`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ displayName }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (response.status === 401) {
+      handleSessionExpired();
+      throw new Error(result.error || 'Your session has expired. Please sign in again.');
+    }
+    if (!response.ok) throw new Error(result.error || 'Could not update your profile.');
+    authUserRef.current = result.user;
+    setAuthUser(result.user);
+    return result.user;
+  }, [handleSessionExpired]);
 
   const selectFocusTimerMode = (mode) => {
     const duration = mode.minutes * 60;
@@ -972,12 +1053,23 @@ function App() {
   };
 
   // ─── View Router Render ───
+  if (currentView === 'auth') {
+    return (
+      <AuthPage
+        isLoading={authLoading}
+        serviceError={authServiceError}
+        onAuthenticated={handleAuthenticated}
+        onGoToLanding={() => setCurrentView('landing')}
+      />
+    );
+  }
+
   if (currentView === 'landing') {
     return (
       <LandingPage
         onCreateRoom={handleCreateRoom}
         onJoinRoom={handleJoinRoom}
-        onOpenDashboard={() => setCurrentView('dashboard')}
+        onOpenDashboard={() => setCurrentView(authUserRef.current ? 'dashboard' : 'auth')}
       />
     );
   }
@@ -985,9 +1077,13 @@ function App() {
   if (currentView === 'dashboard') {
     return (
       <Dashboard
+        user={authUser}
         onCreateRoom={handleCreateRoom}
         onJoinRoom={handleJoinRoom}
         onBackToHome={() => setCurrentView('landing')}
+        onLogout={handleLogout}
+        onUpdateDisplayName={handleUpdateDisplayName}
+        onSessionExpired={handleSessionExpired}
         timerMode={focusTimerMode}
         timeLeft={focusTimeLeft}
         timerRunning={focusTimerRunning}
@@ -1002,6 +1098,7 @@ function App() {
     return (
       <PreJoinLobby
         roomId={roomId}
+        accountDisplayName={authUser?.displayName || ''}
         localVideoRef={localVideoRef}
         cameraReady={cameraReady}
         cameraSwitching={cameraSwitching}

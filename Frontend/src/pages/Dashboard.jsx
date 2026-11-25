@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import StudyRoomsBrand from '../components/StudyRoomsBrand';
+import PersonalWorkspace from '../components/PersonalWorkspace';
 
 const TIMER_MODES = [
   { id: 'focus25', label: '25m Focus', minutes: 25 },
@@ -7,6 +8,28 @@ const TIMER_MODES = [
   { id: 'break5', label: '5m Break', minutes: 5 },
   { id: 'break15', label: '15m Rest', minutes: 15 },
 ];
+
+const NAV_GROUPS = [
+  {
+    label: 'Workspace',
+    items: [
+      { id: 'overview', label: 'Overview', icon: '⌂' },
+      { id: 'tasks', label: 'My tasks', icon: '☷' },
+      { id: 'notes', label: 'My notes', icon: '▤' },
+    ],
+  },
+  {
+    label: 'Study',
+    items: [
+      { id: 'focus', label: 'Focus timer', icon: '◷' },
+      { id: 'rooms', label: 'Study rooms', icon: '▦' },
+    ],
+  },
+];
+
+const SECTION_LABELS = Object.fromEntries(
+  NAV_GROUPS.flatMap((group) => group.items.map(({ id, label }) => [id, label]))
+);
 
 function formatRelativeTime(timestamp) {
   if (!timestamp) return 'Previously';
@@ -23,9 +46,13 @@ function formatRelativeTime(timestamp) {
 }
 
 export default function Dashboard({
+  user,
   onCreateRoom,
   onJoinRoom,
   onBackToHome,
+  onLogout,
+  onUpdateDisplayName,
+  onSessionExpired,
   timerMode,
   timeLeft,
   timerRunning,
@@ -33,6 +60,7 @@ export default function Dashboard({
   onToggleTimer,
   onResetTimer,
 }) {
+  const [activeSection, setActiveSection] = useState('overview');
   // Join room form state
   const [roomInput, setRoomInput] = useState('');
   const [inputError, setInputError] = useState('');
@@ -40,11 +68,15 @@ export default function Dashboard({
   const [searchQuery, setSearchQuery] = useState('');
 
   // Display Name personalization
-  const [displayName, setDisplayName] = useState(() => {
-    return localStorage.getItem('sr_display_name') || '';
-  });
+  const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(displayName);
+  const [profileError, setProfileError] = useState('');
+
+  useEffect(() => {
+    setDisplayName(user?.displayName || '');
+    setNameDraft(user?.displayName || '');
+  }, [user?.id, user?.displayName]);
 
   // Recent Rooms (Local persistence only)
   const [recentRooms, setRecentRooms] = useState(() => {
@@ -71,16 +103,22 @@ export default function Dashboard({
   );
 
   // Display Name handlers
-  const handleSaveDisplayName = (e) => {
+  const handleSaveDisplayName = async (e) => {
     e?.preventDefault();
     const clean = nameDraft.trim();
-    setDisplayName(clean);
-    if (clean) {
-      localStorage.setItem('sr_display_name', clean);
-    } else {
-      localStorage.removeItem('sr_display_name');
+    if (!clean) {
+      setProfileError('Enter a display name.');
+      return;
     }
-    setIsEditingName(false);
+    try {
+      const updated = await onUpdateDisplayName(clean);
+      setDisplayName(updated.displayName);
+      setNameDraft(updated.displayName);
+      setProfileError('');
+      setIsEditingName(false);
+    } catch (error) {
+      setProfileError(error.message || 'Could not update your display name.');
+    }
   };
 
   const avatarInitials = (displayName || 'Guest User')
@@ -173,16 +211,43 @@ export default function Dashboard({
     return room.id.toLowerCase().includes(searchQuery.trim().toLowerCase());
   });
 
+  const workspaceSection = ['overview', 'tasks', 'notes'].includes(activeSection)
+    ? activeSection
+    : null;
+
   return (
-    <div className="sr-light-page sr-dashboard relative min-h-screen w-full flex flex-col justify-between overflow-x-hidden">
+    <div className="sr-light-page sr-dashboard">
+      <div className="sr-dashboard__shell">
+        <aside className="sr-dashboard__sidebar" aria-label="Main navigation">
+          <div className="sr-dashboard__sidebar-brand"><StudyRoomsBrand size="md" /></div>
+          {NAV_GROUPS.map((group) => (
+            <div className="sr-dashboard__nav-group" key={group.label}>
+              <p className="sr-dashboard__nav-label">{group.label}</p>
+              <nav aria-label={`${group.label} navigation`}>
+                {group.items.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`sr-dashboard__nav-item ${activeSection === item.id ? 'is-active' : ''}`}
+                    aria-current={activeSection === item.id ? 'page' : undefined}
+                    onClick={() => setActiveSection(item.id)}
+                  >
+                    <span className="sr-dashboard__nav-icon" aria-hidden="true">{item.icon}</span>
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </nav>
+            </div>
+          ))}
+        </aside>
+
+        <div className="sr-dashboard__app-main">
       {/* ── Top Header ── */}
-      <header className="sr-dashboard__header relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between border-b border-white/[0.06]">
-        <div className="flex items-center gap-3 sm:gap-4">
-          <StudyRoomsBrand size="md" />
-          <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-800/90 text-[11px] font-semibold text-indigo-300 border border-indigo-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Study Hub
-          </span>
+      <header className="sr-dashboard__header relative z-10 px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between border-b border-white/[0.06]">
+        <div className="sr-dashboard__breadcrumb" aria-label="Current section">
+          <span>StudyRooms</span>
+          <span aria-hidden="true">/</span>
+          <strong>{SECTION_LABELS[activeSection]}</strong>
         </div>
 
         <div className="flex items-center gap-3">
@@ -250,19 +315,42 @@ export default function Dashboard({
           >
             ← Home
           </button>
+          <button
+            type="button"
+            onClick={onLogout}
+            className="text-xs font-semibold px-3 sm:px-4 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border border-white/10 transition-all active:scale-95 cursor-pointer"
+          >
+            Sign out
+          </button>
         </div>
       </header>
 
+      {profileError && (
+        <p role="alert" className="px-4 sm:px-6 pt-3 text-xs text-rose-400">
+          {profileError}
+        </p>
+      )}
+
       {/* ── Main Dashboard Content ── */}
-      <main className="sr-dashboard__main relative z-10 mx-auto w-full max-w-6xl px-4 sm:px-6 pt-8 pb-16 flex-1 flex flex-col gap-8">
+      <main className="sr-dashboard__main relative z-10 w-full px-4 sm:px-6 pt-8 pb-16 flex-1 flex flex-col gap-8">
         {/* Welcome Section & Quick Stats */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="sr-dashboard__welcome flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="sr-font-heading text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-tight">
-              Study Dashboard
+              {activeSection === 'overview'
+                ? `Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}${displayName ? `, ${displayName}` : ''}`
+                : SECTION_LABELS[activeSection]}
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-slate-400">
-              Welcome back{displayName ? `, ${displayName}` : ''}. Jump into a room, manage your focus sessions, or rejoin past study spaces.
+              {activeSection === 'overview'
+                ? "A little progress every day adds up. Here's your space to make it happen."
+                : activeSection === 'tasks'
+                  ? 'Keep your personal study tasks organized and moving forward.'
+                  : activeSection === 'notes'
+                    ? 'Your study notes, gathered in one place.'
+                    : activeSection === 'focus'
+                      ? 'Set a pace, focus on one thing at a time, and take breaks.'
+                      : 'Create a study room or rejoin one of your recent sessions.'}
             </p>
           </div>
 
@@ -290,8 +378,16 @@ export default function Dashboard({
           </div>
         </div>
 
+        <PersonalWorkspace
+          displayName={displayName}
+          section={workspaceSection || 'overview'}
+          hidden={!workspaceSection}
+          onNavigate={setActiveSection}
+          onSessionExpired={onSessionExpired}
+        />
+
         {/* ── Action Grid: Launch Room + Join Room ── */}
-        <div className="sr-dashboard__action-grid grid grid-cols-1 md:grid-cols-2 gap-5">
+        {activeSection === 'rooms' && <div className="sr-dashboard__action-grid grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Card 1: Start Instant Study Room */}
           <div className="sr-dashboard__card relative p-6 rounded-2xl bg-slate-900/80 border border-white/10 flex flex-col justify-between transition-all group overflow-hidden">
             <div>
@@ -374,10 +470,10 @@ export default function Dashboard({
               </button>
             </form>
           </div>
-        </div>
+        </div>}
 
         {/* ── Productivity Section: Focus Pomodoro Timer Widget ── */}
-        <div className="sr-dashboard__panel sr-dashboard__timer p-6 rounded-2xl bg-slate-900/60 border border-white/10">
+        {(activeSection === 'overview' || activeSection === 'focus') && <div className="sr-dashboard__panel sr-dashboard__timer p-6 rounded-2xl bg-slate-900/60 border border-white/10">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center">
@@ -467,10 +563,10 @@ export default function Dashboard({
               </button>
             </div>
           </div>
-        </div>
+        </div>}
 
         {/* ── Recent Rooms (Client-side localStorage) ── */}
-        <div className="sr-dashboard__panel sr-dashboard__recent p-6 rounded-2xl bg-slate-900/60 border border-white/10">
+        {activeSection === 'rooms' && <div className="sr-dashboard__panel sr-dashboard__recent p-6 rounded-2xl bg-slate-900/60 border border-white/10">
           {/* Header Row */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
@@ -605,13 +701,15 @@ export default function Dashboard({
               ))}
             </div>
           )}
-        </div>
+        </div>}
       </main>
 
       {/* ── Footer ── */}
       <footer className="sr-dashboard__footer relative z-10 w-full border-t border-white/[0.05] py-5 px-6 text-center text-xs text-slate-400">
         StudyRooms Hub • Client-managed session history • Connect. Collaborate. Learn.
       </footer>
+        </div>
+      </div>
     </div>
   );
 }
