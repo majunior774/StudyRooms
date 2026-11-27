@@ -514,6 +514,61 @@
   padding-inline: 12px;
 }
 
+.sr-dashboard__header-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.sr-dashboard__profile-edit {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 6px;
+  border: 1px solid #cbd9cf;
+  border-radius: 12px;
+  background: #f2f5f0;
+  box-shadow: 0 2px 5px rgba(40, 60, 46, .05);
+}
+.sr-dashboard__profile-input {
+  height: 30px;
+  min-width: 0;
+  padding: 0 10px;
+  border: 1px solid #d6dfd6;
+  border-radius: 8px;
+  background: #fffefa;
+  color: #34453c;
+  font-size: 12px;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+.sr-dashboard__profile-input:focus {
+  border-color: #6f9a83;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(82, 130, 116, .13);
+}
+.sr-dashboard__profile-save,
+.sr-dashboard__profile-cancel {
+  display: inline-flex;
+  min-height: 30px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 750;
+  transition: background .16s ease, color .16s ease, transform .16s ease;
+}
+.sr-dashboard__profile-save { padding: 0 10px; background: var(--sr-green); color: #fff; }
+.sr-dashboard__profile-save:hover { background: var(--sr-green-hover); transform: translateY(-1px); }
+.sr-dashboard__profile-cancel { width: 28px; padding: 0; background: #e7ece6; color: #718078; font-size: 13px; }
+.sr-dashboard__profile-cancel:hover { background: #dce5dc; color: #40574a; }
+.sr-dashboard__displayname-control { position: relative; }
+.sr-dashboard__displayname-edit { background: #f2f5f0; }
+.sr-dashboard__displayname-input { width: 138px; }
+
 .sr-dashboard__username-control { position: relative; }
 .sr-dashboard__username-trigger {
   display: inline-flex;
@@ -557,39 +612,14 @@
 .sr-dashboard__username-pencil { flex: 0 0 auto; color: #82948a; transition: color .16s ease; }
 .sr-dashboard__username-trigger:hover .sr-dashboard__username-pencil { color: #3f715e; }
 .sr-dashboard__username-edit {
-  display: flex;
-  min-height: 40px;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
-  border: 1px solid #cbd9cf;
-  border-radius: 11px;
-  background: #f3f6f1;
+  background: #f0f4ef;
 }
 .sr-dashboard__username-edit .sr-dashboard__username-at { width: 25px; height: 25px; }
 .sr-dashboard__username-input {
-  width: 100px;
-  min-width: 0;
-  padding: 6px 8px;
-  border: 1px solid #d7dfd7;
-  border-radius: 7px;
-  background: #fffefa;
-  color: #34453c;
-  font-size: 11px;
+  width: 92px;
 }
-.sr-dashboard__username-save,
-.sr-dashboard__username-cancel {
-  min-height: 28px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: 7px;
-  font-size: 10px;
-  font-weight: 700;
-}
-.sr-dashboard__username-save { background: var(--sr-green); color: white; }
-.sr-dashboard__username-cancel { background: #e7ece6; color: #637268; }
-.sr-dashboard__username-save:hover { background: var(--sr-green-hover); }
-.sr-dashboard__username-cancel:hover { background: #dce5dc; }
+.sr-dashboard__username-save { padding-inline: 9px; }
+.sr-dashboard__username-cancel { width: 27px; }
 
 .sr-dashboard__header > div:last-child > button {
   padding-inline: 16px !important;
@@ -909,6 +939,8 @@
   .sr-dashboard__header {
     width: min(100% - 24px, 1024px);
     min-height: 72px;
+    flex-wrap: wrap;
+    row-gap: 8px;
   }
 
   .sr-dashboard__header svg[aria-label="StudyRooms Symbol"] {
@@ -924,9 +956,7 @@
     gap: 10px;
   }
 
-  .sr-dashboard__header > div:last-child {
-    gap: 8px;
-  }
+  .sr-dashboard__header-actions { width: 100%; flex-wrap: wrap; gap: 7px; }
 
   .sr-dashboard__header [title="Click to edit your study display name"],
   .sr-dashboard__header > div:last-child > button {
@@ -940,6 +970,11 @@
   .sr-dashboard__username-label { max-width: 70px; font-size: 11px; }
   .sr-dashboard__username-pencil { width: 10px; height: 10px; }
   .sr-dashboard__username-input { width: 72px; }
+  .sr-dashboard__displayname-input { width: 96px; }
+  .sr-dashboard__profile-edit { min-height: 38px; gap: 5px; padding: 4px; }
+  .sr-dashboard__profile-input { height: 28px; padding-inline: 8px; font-size: 11px; }
+  .sr-dashboard__profile-save,
+  .sr-dashboard__profile-cancel { min-height: 28px; }
 
   .sr-dashboard__main {
     gap: 24px;
