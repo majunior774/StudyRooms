@@ -374,29 +374,27 @@ export default function Dashboard({
           <strong>{SECTION_LABELS[activeSection]}</strong>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="sr-dashboard__header-actions">
           {/* Display Name Badge */}
-          <div className="relative">
+          <div className="sr-dashboard__displayname-control">
             {isEditingName ? (
-              <form onSubmit={handleSaveDisplayName} className="flex items-center gap-1.5">
+              <form onSubmit={handleSaveDisplayName} className="sr-dashboard__profile-edit sr-dashboard__displayname-edit">
                 <input
                   type="text"
                   value={nameDraft}
                   onChange={(e) => setNameDraft(e.target.value)}
                   placeholder="Your Name..."
                   autoFocus
-                  className="px-2.5 py-1 text-xs rounded-lg bg-slate-800 border border-indigo-500/50 text-white focus:outline-none w-28 sm:w-36"
+                  className="sr-dashboard__profile-input sr-dashboard__displayname-input"
                 />
-                <button
-                  type="submit"
-                  className="px-2 py-1 text-[11px] font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-all cursor-pointer"
-                >
+                <button type="submit" className="sr-dashboard__profile-save">
                   Save
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsEditingName(false)}
-                  className="px-1.5 py-1 text-[11px] text-slate-400 hover:text-white transition-all cursor-pointer"
+                  className="sr-dashboard__profile-cancel"
+                  aria-label="Cancel display name edit"
                 >
                   ✕
                 </button>
@@ -432,10 +430,10 @@ export default function Dashboard({
             )}
           </div>
 
-          <div className="relative">
+          <div className="sr-dashboard__username-control">
             {isEditingUsername ? (
-              <form onSubmit={handleSaveUsername} className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-400">@</span>
+              <form onSubmit={handleSaveUsername} className="sr-dashboard__profile-edit sr-dashboard__username-edit">
+                <span className="sr-dashboard__username-at" aria-hidden="true">@</span>
                 <input
                   type="text"
                   value={usernameDraft}
@@ -445,18 +443,15 @@ export default function Dashboard({
                   maxLength={32}
                   autoFocus
                   aria-label="Username"
-                  className="px-2.5 py-1 text-xs rounded-lg bg-slate-800 border border-indigo-500/50 text-white focus:outline-none w-28 sm:w-36"
+                  className="sr-dashboard__profile-input sr-dashboard__username-input"
                 />
-                <button
-                  type="submit"
-                  className="px-2 py-1 text-[11px] font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-all cursor-pointer"
-                >
+                <button type="submit" className="sr-dashboard__profile-save sr-dashboard__username-save">
                   Save
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsEditingUsername(false)}
-                  className="px-1.5 py-1 text-[11px] text-slate-400 hover:text-white transition-all cursor-pointer"
+                  className="sr-dashboard__profile-cancel sr-dashboard__username-cancel"
                   aria-label="Cancel username edit"
                 >
                   ✕
@@ -470,11 +465,12 @@ export default function Dashboard({
                   setProfileError('');
                   setIsEditingUsername(true);
                 }}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-white/10 text-xs text-slate-300 transition-all cursor-pointer group"
+                className="sr-dashboard__username-trigger"
                 title="Edit your unique username"
                 aria-label={`Edit username ${username}`}
               >
-                <span className="max-w-[120px] truncate font-medium">@{username}</span>
+                <span className="sr-dashboard__username-at" aria-hidden="true">@</span>
+                <span className="sr-dashboard__username-label">{username || 'username'}</span>
                 <svg
                   width="12"
                   height="12"
@@ -482,7 +478,7 @@ export default function Dashboard({
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
-                  className="text-slate-400 group-hover:text-white transition-colors"
+                  className="sr-dashboard__username-pencil"
                 >
                   <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
                 </svg>
