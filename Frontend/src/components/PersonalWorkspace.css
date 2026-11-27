@@ -52,7 +52,8 @@
 .sr-workspace__content { min-width: 0; }
 
 .sr-workspace__loading,
-.sr-workspace__error {
+.sr-workspace__error,
+.sr-workspace__saving {
   margin: 0 0 14px;
   padding: 12px 14px;
   border-radius: 10px;
@@ -68,6 +69,28 @@
   border: 1px solid #e5c8c1;
   background: #faeeeb;
   color: #88483f;
+}
+
+.sr-workspace__saving {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #cbd9d0;
+  background: #eff4f0;
+  color: var(--sr-green);
+}
+
+.sr-workspace__saving-dot {
+  width: 9px;
+  height: 9px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: sr-workspace-spin 0.7s linear infinite;
+}
+
+@keyframes sr-workspace-spin {
+  to { transform: rotate(360deg); }
 }
 
 .sr-workspace__overview {
