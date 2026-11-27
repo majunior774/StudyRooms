@@ -6,7 +6,7 @@ const apiBaseUrl = import.meta.env.DEV
   ? ''
   : (import.meta.env.VITE_SERVER_URL || '').replace(/\/$/, '');
 
-export default function AuthPage({ isLoading, serviceError, onAuthenticated, onRegistered, onGoToLanding }) {
+export default function AuthPage({ isLoading, serviceError, onAuthenticated, onGoToLanding }) {
   const [mode, setMode] = useState('login');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -42,8 +42,7 @@ export default function AuthPage({ isLoading, serviceError, onAuthenticated, onR
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || 'Could not sign in. Try again.');
-      if (isRegistering) onRegistered?.(result.user);
-      else onAuthenticated(result.user);
+      onAuthenticated(result.user);
     } catch (submitError) {
       setError(submitError.message || 'Could not reach the account service.');
     } finally {

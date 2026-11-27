@@ -159,6 +159,7 @@ router.post('/register', async (req, res) => {
         }
       }
     }
+    await issueSession(user, res);
     return res.status(201).json({ user: publicUser(user) });
   } catch (error) {
     if (error?.code === 11000 && error.keyPattern?.email) {
