@@ -1117,7 +1117,6 @@ function App() {
       <LandingPage
         onCreateRoom={handleCreateRoom}
         onJoinRoom={handleJoinRoom}
-        onInviteFriendToNewRoom={handleInviteFriendToNewRoom}
         onOpenDashboard={() => setCurrentView(authUserRef.current ? 'dashboard' : 'auth')}
       />
     );
@@ -1129,6 +1128,7 @@ function App() {
         user={authUser}
         onCreateRoom={handleCreateRoom}
         onJoinRoom={handleJoinRoom}
+        onInviteFriendToNewRoom={handleInviteFriendToNewRoom}
         onBackToHome={() => setCurrentView('landing')}
         onLogout={handleLogout}
         onUpdateProfile={handleUpdateProfile}
