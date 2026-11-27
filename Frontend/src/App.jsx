@@ -140,6 +140,7 @@ function App() {
   const [authUser, setAuthUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authServiceError, setAuthServiceError] = useState('');
+  const [landingNotice, setLandingNotice] = useState('');
   const authUserRef = useRef(null);
   const localDisplayNameRef = useRef('Guest');
 
@@ -1032,6 +1033,15 @@ function App() {
     setCurrentView('dashboard');
   }, []);
 
+  const handleRegistered = useCallback(() => {
+    authUserRef.current = null;
+    setAuthUser(null);
+    setAuthServiceError('');
+    setLandingNotice('Your account is ready. Start a room now, or sign in to open your dashboard.');
+    window.history.replaceState({}, '', window.location.pathname);
+    setCurrentView('landing');
+  }, []);
+
   const handleSessionExpired = useCallback(() => {
     authUserRef.current = null;
     setAuthUser(null);
@@ -1107,6 +1117,7 @@ function App() {
         isLoading={authLoading}
         serviceError={authServiceError}
         onAuthenticated={handleAuthenticated}
+        onRegistered={handleRegistered}
         onGoToLanding={() => setCurrentView('landing')}
       />
     );
@@ -1117,6 +1128,7 @@ function App() {
       <LandingPage
         onCreateRoom={handleCreateRoom}
         onJoinRoom={handleJoinRoom}
+        notice={landingNotice}
         onOpenDashboard={() => setCurrentView(authUserRef.current ? 'dashboard' : 'auth')}
       />
     );
