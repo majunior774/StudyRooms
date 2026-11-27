@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+::selection {
+  background: #8fb6a1;
+  color: #17352a;
+}
+
+::-moz-selection {
+  background: #8fb6a1;
+  color: #17352a;
+}
+
 /* ══════════════════════════════════════════════════
    StudyRooms — Global Design Tokens & Typography
    ══════════════════════════════════════════════════ */
