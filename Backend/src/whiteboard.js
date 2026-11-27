@@ -29,6 +29,10 @@ function isBoardCoordinate(value) {
     return Number.isFinite(value) && value >= 0 && value <= BOARD_SIZE;
 }
 
+function isCursorCoordinate(value) {
+    return Number.isFinite(value) && value >= 0 && value <= 1;
+}
+
 function isColor(value) {
     return typeof value === "string" && COLOR_PATTERN.test(value);
 }
@@ -177,6 +181,25 @@ function registerWhiteboardHandlers(io, socket) {
                 points: stroke.points,
             })),
             revision: board.revision,
+        });
+    });
+
+    socket.on("whiteboard:cursor", (payload = {}) => {
+        if (!isRecord(payload)) return;
+        const { roomId, visible } = payload;
+        if (!isRoomMember(socket, roomId) || typeof visible !== "boolean") return;
+        if (visible && (!isCursorCoordinate(payload.x) || !isCursorCoordinate(payload.y))) return;
+
+        const now = Date.now();
+        if (visible && now - (socket.data?.lastWhiteboardCursorAt ?? 0) < 35) return;
+        if (visible && socket.data) socket.data.lastWhiteboardCursorAt = now;
+
+        socket.to(roomId).emit("whiteboard:cursor", {
+            roomId,
+            userId: socket.id,
+            displayName: socket.data?.displayName || "Guest",
+            visible,
+            ...(visible ? { x: payload.x, y: payload.y } : {}),
         });
     });
 
@@ -412,6 +435,12 @@ function registerWhiteboardHandlers(io, socket) {
             if (roomId === socket.id) {
                 continue;
             }
+
+            socket.to(roomId).emit("whiteboard:cursor", {
+                roomId,
+                userId: socket.id,
+                visible: false,
+            });
 
             const board = boards.get(roomId);
             if (board) {

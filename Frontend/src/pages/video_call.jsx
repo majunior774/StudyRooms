@@ -102,6 +102,7 @@ export default function VideoCall({
   const [showControls, setShowControls] = useState(true);
   const [whiteboardOpen, setWhiteboardOpen] = useState(false);
   const [watchTogetherOpen, setWatchTogetherOpen] = useState(false);
+  const [videoStageFocused, setVideoStageFocused] = useState(false);
   const [screenShareDialogOpen, setScreenShareDialogOpen] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -438,6 +439,7 @@ export default function VideoCall({
   const focusTimeDisplay = `${String(Math.floor(focusTimeLeft / 60)).padStart(2, '0')}:${String(
     focusTimeLeft % 60
   ).padStart(2, '0')}`;
+  const hasOpenStudyPanel = whiteboardOpen || watchTogetherOpen;
 
   const announceToolStarted = (tool) => socket?.emit('room:tool-started', { roomId, tool });
   const toggleRoomTool = (tool, setOpen, isOpen) => {
@@ -535,7 +537,7 @@ export default function VideoCall({
       </header>
 
       {/* ── Main Content Area ── */}
-      <div className={`vc-main ${whiteboardOpen || watchTogetherOpen ? 'vc-main--panels' : ''} ${whiteboardOpen && watchTogetherOpen ? 'vc-main--two-panels' : ''}`}>
+      <div className={`vc-main ${hasOpenStudyPanel ? 'vc-main--panels' : ''} ${whiteboardOpen && watchTogetherOpen ? 'vc-main--two-panels' : ''} ${videoStageFocused ? 'vc-main--video-focused' : ''}`}>
         {/* ── Video Stage ── */}
         <main
           className={`vc-stage ${useAdaptiveGrid ? 'vc-stage--adaptive' : ''} ${localInGrid ? 'vc-stage--adaptive-grid' : ''}`}
@@ -647,6 +649,16 @@ export default function VideoCall({
               <span className="vc-screen-preview__label">You're sharing</span>
               {expandedTile === 'local:screen' && <span className="vc-tile__expand-hint">Double-tap or press Esc to return</span>}
             </div>
+          )}
+          {hasOpenStudyPanel && (
+            <button
+              type="button"
+              className="vc-stage__focus-toggle"
+              onClick={() => setVideoStageFocused((focused) => !focused)}
+              aria-pressed={videoStageFocused}
+            >
+              {videoStageFocused ? 'Minimize video' : 'Focus video'}
+            </button>
           )}
         </main>
 

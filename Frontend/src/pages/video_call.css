@@ -1671,3 +1671,107 @@
     font-size: 10px;
   }
 }
+
+/* Keep the call visible as a mobile PiP while a study tool is being used. */
+.vc-stage__focus-toggle { display: none; }
+
+@media (max-width: 600px) {
+  .vc-main--panels {
+    display: block;
+    position: relative;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 0 0 16px;
+    overscroll-behavior: contain;
+  }
+
+  .vc-main--panels .vc-stage {
+    position: fixed;
+    right: 12px;
+    bottom: calc(92px + env(safe-area-inset-bottom));
+    width: clamp(126px, 37vw, 170px);
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 4 / 3;
+    flex: none;
+    z-index: 35;
+    overflow: hidden;
+    border: 1px solid rgba(138, 182, 162, 0.65);
+    border-radius: 13px;
+    background: #111916;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  }
+
+  .vc-main--panels .vc-solo__overlay,
+  .vc-main--panels .vc-screen-preview { display: none; }
+  .vc-main--panels .vc-solo video { filter: none; }
+  .vc-main--panels .vc-pip {
+    right: 4px;
+    bottom: 4px;
+    width: 42px;
+    aspect-ratio: 4 / 3;
+    border-radius: 6px;
+  }
+  .vc-main--panels .vc-pip__badge { display: none; }
+
+  .vc-main--panels .whiteboard,
+  .vc-main--panels .watch-together {
+    width: 100%;
+    height: calc(100dvh - 132px);
+    min-height: 380px;
+    margin: 0 0 12px;
+    flex: none;
+    border-radius: 0;
+  }
+
+  .vc-stage__focus-toggle {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    z-index: 20;
+    display: inline-flex;
+    min-height: 24px;
+    align-items: center;
+    padding: 0 7px;
+    border: 1px solid rgba(213, 231, 219, 0.32);
+    border-radius: 7px;
+    background: rgba(19, 33, 27, 0.88);
+    color: #e7f2ea;
+    font: 600 9px/1 Inter, system-ui, sans-serif;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+  }
+
+  .vc-main--panels.vc-main--video-focused {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 0 0 16px;
+  }
+  .vc-main--panels.vc-main--video-focused .vc-stage {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    height: 46vh;
+    min-height: 240px;
+    margin: 0;
+    aspect-ratio: auto;
+    flex: 0 0 46vh;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .vc-main--panels.vc-main--video-focused .vc-solo__overlay,
+  .vc-main--panels.vc-main--video-focused .vc-screen-preview { display: flex; }
+  .vc-main--panels.vc-main--video-focused .vc-pip { width: 95px; aspect-ratio: 3 / 4; right: 10px; bottom: 90px; }
+  .vc-main--panels.vc-main--video-focused .vc-pip__badge { display: inline-flex; }
+  .vc-main--panels.vc-main--video-focused .whiteboard,
+  .vc-main--panels.vc-main--video-focused .watch-together {
+    height: calc(100dvh - 132px);
+    min-height: 380px;
+  }
+}
+
+@media (max-width: 360px) {
+  .vc-main--panels .vc-stage { right: 8px; bottom: calc(88px + env(safe-area-inset-bottom)); width: 122px; }
+}

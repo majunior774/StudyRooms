@@ -67,6 +67,12 @@ function getObjectText(object) {
   return typeof object.text === 'string' ? object.text : '';
 }
 
+function cursorColor(userId) {
+  let hash = 0;
+  for (const character of userId) hash = (hash * 31 + character.charCodeAt(0)) | 0;
+  return `hsl(${Math.abs(hash) % 360} 72% 64%)`;
+}
+
 export default function Whiteboard({ socket, roomId, onClose }) {
   const [tool, setTool] = useState('pen');
   const [color, setColor] = useState(DEFAULT_COLOR);
@@ -79,6 +85,10 @@ export default function Whiteboard({ socket, roomId, onClose }) {
   const [textEditor, setTextEditor] = useState(null);
   const [connected, setConnected] = useState(Boolean(socket?.connected));
   const [synced, setSynced] = useState(false);
+  const [remoteCursors, setRemoteCursors] = useState({});
+  const [shareCursor, setShareCursor] = useState(() => {
+    try { return localStorage.getItem('sr_whiteboard_share_cursor') !== 'off'; } catch { return true; }
+  });
   const svgRef = useRef(null);
   const activeCanvasRef = useRef(null);
   const activeStrokesRef = useRef(new Map());
@@ -88,6 +98,7 @@ export default function Whiteboard({ socket, roomId, onClose }) {
   const flushFrameRef = useRef(null);
   const gestureRef = useRef(null);
   const revisionRef = useRef(0);
+  const lastCursorUpdateAtRef = useRef(0);
 
   const boardPoint = useCallback((event) => {
     const bounds = svgRef.current?.getBoundingClientRect();
@@ -97,6 +108,18 @@ export default function Whiteboard({ socket, roomId, onClose }) {
       y: Math.max(0, Math.min(BOARD_HEIGHT, ((event.clientY - bounds.top) / bounds.height) * BOARD_HEIGHT)),
     };
   }, []);
+
+  const emitCursorPosition = (point, visible = true) => {
+    if (!socket?.connected || (visible && !shareCursor)) return;
+    const now = Date.now();
+    if (visible && now - lastCursorUpdateAtRef.current < 40) return;
+    lastCursorUpdateAtRef.current = now;
+    socket.emit('whiteboard:cursor', {
+      roomId,
+      visible,
+      ...(visible ? { x: point.x / BOARD_WIDTH, y: point.y / BOARD_HEIGHT } : {}),
+    });
+  };
 
   const redrawActiveStrokes = useCallback(() => {
     const canvas = activeCanvasRef.current;
@@ -150,6 +173,27 @@ export default function Whiteboard({ socket, roomId, onClose }) {
       socket.emit('whiteboard:join', { roomId });
     };
     const onState = (state) => syncBoardState(state);
+    const onCursor = (cursor = {}) => {
+      if (cursor.roomId !== roomId || typeof cursor.userId !== 'string') return;
+      setRemoteCursors((current) => {
+        const next = { ...current };
+        if (!cursor.visible) {
+          delete next[cursor.userId];
+          return next;
+        }
+        if (
+          !Number.isFinite(cursor.x) || cursor.x < 0 || cursor.x > 1 ||
+          !Number.isFinite(cursor.y) || cursor.y < 0 || cursor.y > 1 ||
+          typeof cursor.displayName !== 'string'
+        ) return current;
+        next[cursor.userId] = {
+          x: cursor.x,
+          y: cursor.y,
+          displayName: cursor.displayName.trim() || 'Study partner',
+        };
+        return next;
+      });
+    };
     const onDraw = (event) => {
       if (event.roomId !== roomId) return;
       const active = activeStrokesRef.current;
@@ -231,10 +275,13 @@ export default function Whiteboard({ socket, roomId, onClose }) {
       gestureRef.current = null;
       setGestureKind(null);
       setPreview(null);
+      setRemoteCursors({});
     };
+    const hideCursorOnBlur = () => socket.emit('whiteboard:cursor', { roomId, visible: false });
 
     socket.on('connect', joinBoard);
     socket.on('whiteboard:state', onState);
+    socket.on('whiteboard:cursor', onCursor);
     socket.on('whiteboard:draw', onDraw);
     socket.on('whiteboard:object-update', onObjectUpdate);
     socket.on('whiteboard:undo', onBoardSnapshot);
@@ -242,6 +289,7 @@ export default function Whiteboard({ socket, roomId, onClose }) {
     socket.on('whiteboard:clear', onClear);
     socket.on('whiteboard:error', onError);
     socket.on('disconnect', onConnectError);
+    window.addEventListener('blur', hideCursorOnBlur);
 
     if (socket.connected) joinBoard();
 
@@ -254,8 +302,10 @@ export default function Whiteboard({ socket, roomId, onClose }) {
           points: [],
         });
       }
+      if (socket.connected) socket.emit('whiteboard:cursor', { roomId, visible: false });
       socket.off('connect', joinBoard);
       socket.off('whiteboard:state', onState);
+      socket.off('whiteboard:cursor', onCursor);
       socket.off('whiteboard:draw', onDraw);
       socket.off('whiteboard:object-update', onObjectUpdate);
       socket.off('whiteboard:undo', onBoardSnapshot);
@@ -263,6 +313,7 @@ export default function Whiteboard({ socket, roomId, onClose }) {
       socket.off('whiteboard:clear', onClear);
       socket.off('whiteboard:error', onError);
       socket.off('disconnect', onConnectError);
+      window.removeEventListener('blur', hideCursorOnBlur);
       if (flushFrameRef.current !== null) {
         cancelAnimationFrame(flushFrameRef.current);
       }
@@ -463,6 +514,7 @@ export default function Whiteboard({ socket, roomId, onClose }) {
   const handlePointerMove = (event) => {
     const point = boardPoint(event);
     if (!point) return;
+    emitCursorPosition(point);
 
     const stroke = strokeRef.current;
     if (stroke) {
@@ -671,6 +723,13 @@ export default function Whiteboard({ socket, roomId, onClose }) {
     ? preview
     : null;
 
+  const toggleCursorSharing = () => {
+    const next = !shareCursor;
+    setShareCursor(next);
+    try { localStorage.setItem('sr_whiteboard_share_cursor', next ? 'on' : 'off'); } catch { /* Keep the choice for this session. */ }
+    if (!next) emitCursorPosition(null, false);
+  };
+
   return (
     <section className={`whiteboard ${boardReady ? '' : 'whiteboard--syncing'}`} aria-label="Collaborative whiteboard">
       <header className="whiteboard-heading">
@@ -762,6 +821,16 @@ export default function Whiteboard({ socket, roomId, onClose }) {
             />
             <span>{size}</span>
           </label>
+          <button
+            type="button"
+            className={`whiteboard-action whiteboard-cursor-toggle ${shareCursor ? 'is-enabled' : ''}`}
+            onClick={toggleCursorSharing}
+            aria-pressed={shareCursor}
+            aria-label={shareCursor ? 'Stop sharing your cursor' : 'Share your cursor with collaborators'}
+            title={shareCursor ? 'Stop sharing your cursor with collaborators' : 'Share your cursor with collaborators'}
+          >
+            Cursor {shareCursor ? 'on' : 'off'}
+          </button>
           <button type="button" className="whiteboard-action" onClick={handleUndo} disabled={!boardReady} title="Undo">
             Undo
           </button>
@@ -800,6 +869,7 @@ export default function Whiteboard({ socket, roomId, onClose }) {
           preserveAspectRatio="none"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
+          onPointerLeave={() => emitCursorPosition(null, false)}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerCancel}
           onLostPointerCapture={handlePointerCancel}
@@ -945,6 +1015,23 @@ export default function Whiteboard({ socket, roomId, onClose }) {
           </defs>
         </svg>
         <canvas ref={activeCanvasRef} className="whiteboard-active-canvas" aria-hidden="true" />
+        {Object.entries(remoteCursors).map(([userId, cursor]) => (
+          <div
+            key={userId}
+            className="whiteboard-cursor"
+            style={{
+              left: `${cursor.x * 100}%`,
+              top: `${cursor.y * 100}%`,
+              '--whiteboard-cursor-color': cursorColor(userId),
+            }}
+            aria-hidden="true"
+          >
+            <svg width="17" height="20" viewBox="0 0 17 20" fill="none">
+              <path d="M1 1v14.3l4.1-3.5 2.5 5.1 2.4-1.2-2.6-5 5.6-.5L1 1Z" fill="var(--whiteboard-cursor-color)" stroke="#111916" strokeWidth="1.2" strokeLinejoin="round" />
+            </svg>
+            <span>{cursor.displayName}</span>
+          </div>
+        ))}
         {textEditor && (
           <section
             className={`whiteboard-text-editor ${textEditor.type === 'sticky' ? 'is-sticky' : ''}`}
