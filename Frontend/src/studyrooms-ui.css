@@ -2478,3 +2478,22 @@
 @media (max-width: 640px) {
   .sr-theme-toggle { right: 12px; bottom: 12px; min-height: 36px; padding-inline: 11px; font-size: 11px; }
 }
+
+.vc .vc-invite__button {
+  border: 1px solid #6f9a87;
+  background: #37695f;
+  box-shadow: 0 4px 12px rgb(31 75 62 / 24%);
+  color: #fff;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+.vc .vc-invite__button:hover:not(:disabled) {
+  border-color: #8ab6a2;
+  background: #2e5c53;
+  transform: translateY(-1px);
+}
+.vc .vc-invite__button:disabled {
+  border-color: #52655c;
+  background: #40564a;
+  color: #d1dfd5;
+  box-shadow: none;
+}

@@ -7,6 +7,12 @@ import RoomInviteDialog from '../components/RoomInviteDialog';
 import RoomChatPanel from '../components/RoomChatPanel';
 
 const MAX_CHAT_MESSAGES = 100;
+const ROOM_TOOL_LABELS = {
+  whiteboard: 'Live Whiteboard',
+  'watch-together': 'Watch Together',
+  chat: 'Room Chat',
+  'screen-share': 'Screen Share',
+};
 
 /* ─── small helper: format elapsed call time ─── */
 function useElapsed(active) {
@@ -101,6 +107,8 @@ export default function VideoCall({
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatError, setChatError] = useState('');
+  const [toolActivity, setToolActivity] = useState(null);
+  const [pendingScreenShareUserId, setPendingScreenShareUserId] = useState('');
   const [screenShareError, setScreenShareError] = useState('');
   const [screenShareWarning, setScreenShareWarning] = useState('');
   const [screenQuality, setScreenQuality] = useState('1080');
@@ -113,6 +121,7 @@ export default function VideoCall({
   const controlsDockRef = useRef(null);
   const screenVideoRef = useRef(null);
   const lastTileTapRef = useRef(null);
+  const toolActivityTimerRef = useRef(null);
 
   const hasRemote = remoteStreams.length > 0;
   // Elapsed timer runs continuously while inside the meeting room
@@ -157,12 +166,50 @@ export default function VideoCall({
     };
   }, [roomId, socket]);
 
+  useEffect(() => {
+    if (!socket) return undefined;
+
+    const handleToolStarted = (activity = {}) => {
+      if (
+        activity.roomId !== roomId ||
+        !ROOM_TOOL_LABELS[activity.tool] ||
+        typeof activity.userId !== 'string' ||
+        typeof activity.displayName !== 'string'
+      ) return;
+
+      clearTimeout(toolActivityTimerRef.current);
+      setToolActivity({
+        tool: activity.tool,
+        userId: activity.userId,
+        displayName: activity.displayName.trim() || 'A study partner',
+      });
+      toolActivityTimerRef.current = window.setTimeout(() => setToolActivity(null), 6000);
+    };
+
+    socket.on('room:tool-started', handleToolStarted);
+    return () => {
+      socket.off('room:tool-started', handleToolStarted);
+      clearTimeout(toolActivityTimerRef.current);
+    };
+  }, [roomId, socket]);
+
   /* ── screen share preview ── */
   useEffect(() => {
     if (screenVideoRef.current && screenShareStream) {
       screenVideoRef.current.srcObject = screenShareStream;
     }
   }, [screenShareStream]);
+
+  useEffect(() => {
+    if (!pendingScreenShareUserId) return;
+    const sharedScreen = remoteStreams.find(
+      (item) => item.userId === pendingScreenShareUserId && item.source === 'screen'
+    );
+    if (sharedScreen) {
+      setExpandedTile(`remote:${sharedScreen.userId}:${sharedScreen.stream.id}`);
+      setPendingScreenShareUserId('');
+    }
+  }, [pendingScreenShareUserId, remoteStreams]);
 
   /* ── tools menu close on outside click / escape ── */
   useEffect(() => {
@@ -346,6 +393,7 @@ export default function VideoCall({
         frameRate: Number(screenFrameRate),
         includeAudio: includeScreenAudio,
       });
+      socket?.emit('room:tool-started', { roomId, tool: 'screen-share' });
       setScreenShareWarning(warning);
       setScreenShareDialogOpen(false);
     } catch (error) {
@@ -390,6 +438,27 @@ export default function VideoCall({
   const focusTimeDisplay = `${String(Math.floor(focusTimeLeft / 60)).padStart(2, '0')}:${String(
     focusTimeLeft % 60
   ).padStart(2, '0')}`;
+
+  const announceToolStarted = (tool) => socket?.emit('room:tool-started', { roomId, tool });
+  const toggleRoomTool = (tool, setOpen, isOpen) => {
+    if (toolsMenuRef.current) toolsMenuRef.current.open = false;
+    if (!isOpen) announceToolStarted(tool);
+    setOpen(!isOpen);
+  };
+  const openToolFromActivity = () => {
+    if (!toolActivity) return;
+    if (toolActivity.tool === 'whiteboard') setWhiteboardOpen(true);
+    if (toolActivity.tool === 'watch-together') setWatchTogetherOpen(true);
+    if (toolActivity.tool === 'chat') setChatOpen(true);
+    if (toolActivity.tool === 'screen-share') {
+      const sharedScreen = remoteStreams.find((item) => item.userId === toolActivity.userId && item.source === 'screen');
+      if (sharedScreen) {
+        setExpandedTile(`remote:${sharedScreen.userId}:${sharedScreen.stream.id}`);
+      } else setPendingScreenShareUserId(toolActivity.userId);
+    }
+    clearTimeout(toolActivityTimerRef.current);
+    setToolActivity(null);
+  };
 
   return (
     <div
@@ -642,7 +711,7 @@ export default function VideoCall({
               <button
                 type="button"
                 className={`vc-tools__option ${whiteboardOpen ? 'vc-tools__option--active' : ''}`}
-                onClick={() => { setWhiteboardOpen((o) => !o); toolsMenuRef.current.open = false; }}
+                onClick={() => toggleRoomTool('whiteboard', setWhiteboardOpen, whiteboardOpen)}
                 aria-pressed={whiteboardOpen}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -654,7 +723,7 @@ export default function VideoCall({
               <button
                 type="button"
                 className={`vc-tools__option ${watchTogetherOpen ? 'vc-tools__option--active' : ''}`}
-                onClick={() => { setWatchTogetherOpen((o) => !o); toolsMenuRef.current.open = false; }}
+                onClick={() => toggleRoomTool('watch-together', setWatchTogetherOpen, watchTogetherOpen)}
                 aria-pressed={watchTogetherOpen}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -668,7 +737,7 @@ export default function VideoCall({
                 className={`vc-tools__option ${chatOpen ? 'vc-tools__option--active' : ''}`}
                 onClick={() => {
                   toolsMenuRef.current.open = false;
-                  setChatOpen((open) => !open);
+                  toggleRoomTool('chat', setChatOpen, chatOpen);
                 }}
                 aria-pressed={chatOpen}
               >
@@ -841,6 +910,22 @@ export default function VideoCall({
       )}
 
       {/* ── Toast Notifications ── */}
+      {toolActivity && (
+        <button
+          type="button"
+          className="vc-tool-activity"
+          onClick={openToolFromActivity}
+          aria-label={`${toolActivity.displayName} started ${ROOM_TOOL_LABELS[toolActivity.tool]}. Open it.`}
+          aria-live="polite"
+        >
+          <span className="vc-tool-activity__icon" aria-hidden="true">✦</span>
+          <span className="vc-tool-activity__copy">
+            <strong>{toolActivity.displayName}</strong>
+            <span>started {ROOM_TOOL_LABELS[toolActivity.tool]}</span>
+          </span>
+          <span className="vc-tool-activity__action">Open <span aria-hidden="true">↗</span></span>
+        </button>
+      )}
       {screenShareWarning && <div className="vc-toast vc-toast--warn" role="status">{screenShareWarning}</div>}
 
       {cameraError && (

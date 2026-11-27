@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import './App.css';
 import { io } from 'socket.io-client';
 import VideoCall from './pages/video_call';
 import LandingPage from './pages/LandingPage';
@@ -156,6 +155,7 @@ function App() {
 
   // Device & Camera State
   const [cameraFacingMode, setCameraFacingMode] = useState('user');
+  const cameraFacingModeRef = useRef('user');
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraSwitching, setCameraSwitching] = useState(false);
   const [cameraError, setCameraError] = useState('');
@@ -272,7 +272,7 @@ function App() {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: cameraFacingMode } },
+        video: { facingMode: { ideal: cameraFacingModeRef.current } },
         audio: true,
       });
       localStreamRef.current = stream;
@@ -287,7 +287,7 @@ function App() {
       setCameraError(`Camera access failed: ${err.message}`);
       throw err;
     }
-  }, [cameraFacingMode]);
+  }, []);
 
   // Initialize camera only when in Lobby or Room
   useEffect(() => {
@@ -570,6 +570,7 @@ function App() {
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = localStream;
       }
+      cameraFacingModeRef.current = nextFacingMode;
       setCameraFacingMode(nextFacingMode);
     } catch (error) {
       nextVideoTrack?.stop();

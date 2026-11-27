@@ -149,6 +149,24 @@ io.on("connection",(socket)=>{
             trackMids: sharing ? trackMids : null,
         });
     });
+    socket.on("room:tool-started", (payload = {}) => {
+        const { roomId, tool } = payload;
+        const allowedTools = new Set(["whiteboard", "watch-together", "chat", "screen-share"]);
+        if (
+            typeof roomId !== "string" ||
+            roomId.length === 0 ||
+            roomId.length > 128 ||
+            !socket.rooms.has(roomId) ||
+            !allowedTools.has(tool)
+        ) return;
+
+        socket.to(roomId).emit("room:tool-started", {
+            roomId,
+            tool,
+            userId: socket.id,
+            displayName: socket.data.displayName || "Guest",
+        });
+    });
     //webRTC set up
     socket.on("offer",({offer,target})=>{
         io.to(target).emit("offer",{offer,from:socket.id})

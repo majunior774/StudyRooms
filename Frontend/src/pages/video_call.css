@@ -5,9 +5,12 @@
    solo radar view, tools dock, and responsive modes.
    ══════════════════════════════════════════════════ */
 
-*,
-*::before,
-*::after {
+.vc,
+.vc::before,
+.vc::after,
+.vc *,
+.vc *::before,
+.vc *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -1106,6 +1109,54 @@
     bottom: 84px;
     width: calc(100vw - 20px);
   }
+}
+
+.vc-tool-activity {
+  position: fixed;
+  top: max(78px, calc(env(safe-area-inset-top) + 68px));
+  right: max(18px, env(safe-area-inset-right));
+  z-index: 90;
+  display: flex;
+  width: min(390px, calc(100vw - 36px));
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(138, 182, 162, 0.42);
+  border-radius: 14px;
+  background: rgba(29, 45, 38, 0.96);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.34);
+  color: #edf5ef;
+  text-align: left;
+  cursor: pointer;
+  backdrop-filter: blur(14px);
+  animation: vc-tool-activity-in 220ms ease-out;
+}
+.vc-tool-activity:hover { border-color: #a3c9b4; background: #263c31; }
+.vc-tool-activity__icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border: 1px solid rgba(138, 182, 162, 0.3);
+  border-radius: 10px;
+  background: rgba(92, 137, 113, 0.24);
+  color: #a6d1b8;
+  font-size: 17px;
+}
+.vc-tool-activity__copy { display: grid; min-width: 0; flex: 1; gap: 3px; }
+.vc-tool-activity__copy strong { overflow: hidden; color: #f2f6f2; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.vc-tool-activity__copy > span { color: #b5c5ba; font-size: 11px; }
+.vc-tool-activity__action { flex: 0 0 auto; color: #a6d1b8; font-size: 11px; font-weight: 700; }
+.vc-tool-activity__action > span { padding-left: 3px; }
+
+@keyframes vc-tool-activity-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 480px) {
+  .vc-tool-activity { top: max(70px, calc(env(safe-area-inset-top) + 60px)); right: 10px; width: calc(100vw - 20px); padding: 10px 11px; }
 }
 
 /* ════════════════════════════════════════════
