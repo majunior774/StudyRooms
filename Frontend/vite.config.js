@@ -8,6 +8,22 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss(), basicssl()],
+    build: {
+      rolldownOptions: {
+        output: {
+          codeSplitting: {
+            groups: [
+              {
+                name: 'room-notes-vendor',
+                test: /node_modules[\\/](?:@tiptap|prosemirror|yjs|y-protocols)(?:[\\/]|$)/,
+                minSize: 20000,
+                maxSize: 400000,
+              },
+            ],
+          },
+        },
+      },
+    },
     server: {
       host: '0.0.0.0',
       proxy: {

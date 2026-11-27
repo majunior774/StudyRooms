@@ -1,11 +1,12 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { lazy, Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import './video_call.css';
 import Whiteboard from '../components/Whiteboard';
 import YouTubeWatchTogether from '../components/YouTubeWatchTogether';
 import StudyRoomsBrand, { StudyRoomsIcon } from '../components/StudyRoomsBrand';
 import RoomInviteDialog from '../components/RoomInviteDialog';
 import RoomChatPanel from '../components/RoomChatPanel';
-import RoomNotes from '../components/RoomNotes';
+
+const RoomNotes = lazy(() => import('../components/RoomNotes'));
 
 const MAX_CHAT_MESSAGES = 100;
 const ROOM_TOOL_LABELS = {
@@ -17,16 +18,19 @@ const ROOM_TOOL_LABELS = {
 };
 
 /* ─── small helper: format elapsed call time ─── */
-function useElapsed(active) {
+function useElapsed(active, roomTimer) {
   const [seconds, setSeconds] = useState(0);
   useEffect(() => {
-    if (!active) return undefined;
-    const id = setInterval(() => setSeconds((s) => s + 1), 1000);
+    if (!active || !roomTimer) return undefined;
+    const update = () => setSeconds(Math.max(0, Math.floor(
+      roomTimer.elapsedAtSync + (performance.now() - roomTimer.syncedAt) / 1000
+    )));
+    update();
+    const id = setInterval(update, 1000);
     return () => {
       clearInterval(id);
-      setSeconds(0);
     };
-  }, [active]);
+  }, [active, roomTimer]);
   const m = String(Math.floor(seconds / 60)).padStart(2, '0');
   const s = String(seconds % 60).padStart(2, '0');
   return `${m}:${s}`;
@@ -72,6 +76,7 @@ export default function VideoCall({
   localVideoRef,
   remoteStreams,
   participantNames,
+  roomTimer,
   cameraFacingMode,
   cameraReady,
   cameraSwitching,
@@ -130,7 +135,7 @@ export default function VideoCall({
 
   const hasRemote = remoteStreams.length > 0;
   // Elapsed timer runs continuously while inside the meeting room
-  const elapsed = useElapsed(true);
+  const elapsed = useElapsed(true, roomTimer);
 
   useEffect(() => {
     const updateFullscreen = () => {
@@ -417,7 +422,7 @@ export default function VideoCall({
   };
 
   /* ── adaptive grid ── */
-  const participantCount = remoteStreams.length + 1;
+  const participantCount = new Set(remoteStreams.map((stream) => stream.userId)).size + 1;
   const useAdaptiveGrid = participantCount > 3;
   const localInGrid = useAdaptiveGrid && participantCount % 2 === 1;
   const adaptiveColumns = Math.ceil(Math.sqrt(participantCount));
@@ -684,12 +689,14 @@ export default function VideoCall({
           />
         )}
         {roomNotesOpen && (
-          <RoomNotes
-            socket={socket}
-            roomId={roomId}
-            displayName={displayName}
-            onClose={() => setRoomNotesOpen(false)}
-          />
+          <Suspense fallback={<div className="room-notes-loading" role="status">Loading shared notes…</div>}>
+            <RoomNotes
+              socket={socket}
+              roomId={roomId}
+              displayName={displayName}
+              onClose={() => setRoomNotesOpen(false)}
+            />
+          </Suspense>
         )}
       </div>
 

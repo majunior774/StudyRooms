@@ -58,6 +58,8 @@ const io = new Server(server,{
     }
 });
 const screenShares = new Map();
+const roomStartedAt = new Map();
+const roomTimerCleanup = new Map();
 
 //socket connection
 io.on("connection",(socket)=>{
@@ -67,25 +69,52 @@ io.on("connection",(socket)=>{
     registerChatHandlers(io, socket);
     registerRoomNotesHandlers(io, socket);
 
-    socket.on("join-room",(roomId, participant = {})=>{
+    socket.on("join-room", (roomId, participant = {}) => {
         console.log(`user wants to join ${roomId}`);
+        if (typeof roomId !== "string" || roomId.length === 0 || roomId.length > 128) return;
         const displayName = typeof participant?.displayName === "string"
             ? participant.displayName.trim().slice(0, 80)
             : "";
         socket.data.displayName = displayName || "Guest";
+        const participantId = typeof participant?.participantId === "string"
+            ? participant.participantId.trim().slice(0, 128)
+            : "";
+        socket.data.participantId = participantId || null;
 
-        // Who is already in this room?
-        const existingUsers = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
-        // Tell ONLY the new user
+        const roomMembers = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
+        const pendingTimerCleanup = roomTimerCleanup.get(roomId);
+        if (pendingTimerCleanup) {
+            clearTimeout(pendingTimerCleanup);
+            roomTimerCleanup.delete(roomId);
+        }
+        const replacedSocketIds = roomMembers.filter((userId) => {
+            if (userId === socket.id || !participantId) return false;
+            return io.sockets.sockets.get(userId)?.data.participantId === participantId;
+        });
+        socket.join(roomId);
+        for (const oldSocketId of replacedSocketIds) {
+            const oldSocket = io.sockets.sockets.get(oldSocketId);
+            if (!oldSocket) continue;
+            oldSocket.disconnect(true);
+        }
+
+        const existingUsers = Array.from(io.sockets.adapter.rooms.get(roomId) || [])
+            .filter((userId) => userId !== socket.id);
         socket.emit("existing-users", existingUsers);
         socket.emit("room-participants", existingUsers.map((userId) => ({
             userId,
             displayName: io.sockets.sockets.get(userId)?.data.displayName || "Guest",
         })));
 
-        socket.join(roomId);
+        if (!roomStartedAt.has(roomId)) roomStartedAt.set(roomId, Date.now());
+        socket.emit("room:timer-state", {
+            roomId,
+            startedAt: roomStartedAt.get(roomId),
+            serverNow: Date.now(),
+        });
 
         for (const [userId, share] of screenShares.get(roomId) ?? []) {
+            if (replacedSocketIds.includes(userId)) continue;
             socket.emit("screen-share:state", {
                 roomId,
                 userId,
@@ -94,15 +123,16 @@ io.on("connection",(socket)=>{
             });
         }
 
-        //telling everyone
-        socket.to(roomId).emit("user-joined",socket.id);
-        socket.to(roomId).emit("participant-joined", {
-            userId: socket.id,
-            displayName: socket.data.displayName,
-        });
+        if (!roomMembers.includes(socket.id)) {
+            socket.to(roomId).emit("user-joined", socket.id);
+            socket.to(roomId).emit("participant-joined", {
+                userId: socket.id,
+                displayName: socket.data.displayName,
+            });
+        }
 
         console.log(`user:${socket.id} is in room ${roomId}`);
-    })
+    });
     socket.on("screen-share:state", (payload = {}) => {
         const { roomId, sharing, streamId, trackMids } = payload;
         if (
@@ -195,6 +225,16 @@ io.on("connection",(socket)=>{
                         streamId: null,
                     });
                     if (roomShares.size === 0) screenShares.delete(roomId);
+                }
+                if (io.sockets.adapter.rooms.get(roomId)?.size === 1) {
+                    const previousCleanup = roomTimerCleanup.get(roomId);
+                    if (previousCleanup) clearTimeout(previousCleanup);
+                    const cleanup = setTimeout(() => {
+                        if (!io.sockets.adapter.rooms.get(roomId)?.size) roomStartedAt.delete(roomId);
+                        roomTimerCleanup.delete(roomId);
+                    }, 60_000);
+                    cleanup.unref?.();
+                    roomTimerCleanup.set(roomId, cleanup);
                 }
             }
         }

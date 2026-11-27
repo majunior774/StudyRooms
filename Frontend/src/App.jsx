@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
-import VideoCall from './pages/video_call';
-import LandingPage from './pages/LandingPage';
-import Dashboard from './pages/Dashboard';
-import PreJoinLobby from './pages/PreJoinLobby';
-import AuthPage from './pages/AuthPage';
 import ThemeToggle from './components/ThemeToggle';
 import { friendsRequest } from './services/friendsApi';
+
+const VideoCall = lazy(() => import('./pages/video_call'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const PreJoinLobby = lazy(() => import('./pages/PreJoinLobby'));
+const AuthPage = lazy(() => import('./pages/AuthPage'));
+const PAGE_LOADING = <div className="sr-app-loading" role="status">Loading StudyRooms…</div>;
 // trying
 const apiBaseUrl = import.meta.env.DEV
   ? ''
@@ -145,6 +147,9 @@ function App() {
   const [authServiceError, setAuthServiceError] = useState('');
   const authUserRef = useRef(null);
   const localDisplayNameRef = useRef('Guest');
+  const callParticipantIdRef = useRef(
+    globalThis.crypto?.randomUUID?.() || `guest-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  );
 
   useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
@@ -205,6 +210,7 @@ function App() {
 
   const [remoteStreams, setRemoteStreams] = useState([]);
   const [participantNames, setParticipantNames] = useState({});
+  const [roomTimer, setRoomTimer] = useState(null);
   const [screenShareStream, setScreenShareStream] = useState(null);
 
   // Keep roomIdRef in sync
@@ -604,8 +610,10 @@ function App() {
 
       socketRef.current = io(serverUrl, {
         transports: ['websocket'],
+        autoConnect: false,
       });
       setSocket(socketRef.current);
+      let hasConnectedBefore = false;
 
       const addPendingCandidates = async (userId, peer) => {
         const candidatesOfUser = pendingCandidatesRef.current.get(userId) || [];
@@ -750,10 +758,32 @@ function App() {
       };
 
       // ── Socket Events ──
+      socketRef.current.on('room:timer-state', ({ roomId: eventRoomId, startedAt, serverNow } = {}) => {
+        if (eventRoomId === roomId && Number.isFinite(startedAt) && Number.isFinite(serverNow)) {
+          setRoomTimer({
+            elapsedAtSync: Math.max(0, (serverNow - startedAt) / 1000),
+            syncedAt: performance.now(),
+          });
+        }
+      });
+
       socketRef.current.on('connect', () => {
         console.log(`Connected to StudyRooms signalling: ${socketRef.current.id}`);
+        if (hasConnectedBefore) {
+          for (const peer of peers.values()) peer.close();
+          peers.clear();
+          pendingCandidates.clear();
+          screenShareSenders.clear();
+          screenNegotiationQueuesRef.current.clear();
+          makingOfferRef.current.clear();
+          screenShares.clear();
+          setRemoteStreams([]);
+          setParticipantNames({});
+        }
+        hasConnectedBefore = true;
         socketRef.current.emit('join-room', roomId, {
           displayName: localDisplayNameRef.current,
+          participantId: authUserRef.current?.id || callParticipantIdRef.current,
         });
       });
       socketRef.current.on('connect_error', (error) => {
@@ -929,6 +959,8 @@ function App() {
           console.error('Failed to add candidate:', error);
         }
       });
+
+      socketRef.current.connect();
     };
 
     startSignaling().catch(console.error);
@@ -938,6 +970,7 @@ function App() {
       socketRef.current?.disconnect();
       socketRef.current = null;
       setSocket(null);
+      setRoomTimer(null);
       for (const peer of peers.values()) {
         peer.close();
       }
@@ -1116,12 +1149,14 @@ function App() {
   if (currentView === 'auth') {
     return (
       <>
-        <AuthPage
-          isLoading={authLoading}
-          serviceError={authServiceError}
-          onAuthenticated={handleAuthenticated}
-          onGoToLanding={() => setCurrentView('landing')}
-        />
+        <Suspense fallback={PAGE_LOADING}>
+          <AuthPage
+            isLoading={authLoading}
+            serviceError={authServiceError}
+            onAuthenticated={handleAuthenticated}
+            onGoToLanding={() => setCurrentView('landing')}
+          />
+        </Suspense>
       </>
     );
   }
@@ -1129,11 +1164,13 @@ function App() {
   if (currentView === 'landing') {
     return (
       <>
-        <LandingPage
-          onCreateRoom={handleCreateRoom}
-          onJoinRoom={handleJoinRoom}
-          onOpenDashboard={() => setCurrentView(authUserRef.current ? 'dashboard' : 'auth')}
-        />
+        <Suspense fallback={PAGE_LOADING}>
+          <LandingPage
+            onCreateRoom={handleCreateRoom}
+            onJoinRoom={handleJoinRoom}
+            onOpenDashboard={() => setCurrentView(authUserRef.current ? 'dashboard' : 'auth')}
+          />
+        </Suspense>
       </>
     );
   }
@@ -1141,23 +1178,25 @@ function App() {
   if (currentView === 'dashboard') {
     return (
       <>
-        <Dashboard
-          user={authUser}
-          onCreateRoom={handleCreateRoom}
-          onJoinRoom={handleJoinRoom}
-          onInviteFriendToNewRoom={handleInviteFriendToNewRoom}
-          onBackToHome={() => setCurrentView('landing')}
-          onLogout={handleLogout}
-          onUpdateProfile={handleUpdateProfile}
-          onSessionExpired={handleSessionExpired}
-          timerMode={focusTimerMode}
-          timeLeft={focusTimeLeft}
-          timerRunning={focusTimerRunning}
-          onSelectTimerMode={selectFocusTimerMode}
-          onToggleTimer={toggleFocusTimer}
-          onResetTimer={resetFocusTimer}
-          themeToggle={themeToggle}
-        />
+        <Suspense fallback={PAGE_LOADING}>
+          <Dashboard
+            user={authUser}
+            onCreateRoom={handleCreateRoom}
+            onJoinRoom={handleJoinRoom}
+            onInviteFriendToNewRoom={handleInviteFriendToNewRoom}
+            onBackToHome={() => setCurrentView('landing')}
+            onLogout={handleLogout}
+            onUpdateProfile={handleUpdateProfile}
+            onSessionExpired={handleSessionExpired}
+            timerMode={focusTimerMode}
+            timeLeft={focusTimeLeft}
+            timerRunning={focusTimerRunning}
+            onSelectTimerMode={selectFocusTimerMode}
+            onToggleTimer={toggleFocusTimer}
+            onResetTimer={resetFocusTimer}
+            themeToggle={themeToggle}
+          />
+        </Suspense>
       </>
     );
   }
@@ -1165,18 +1204,20 @@ function App() {
   if (currentView === 'lobby') {
     return (
       <>
-        <PreJoinLobby
-          roomId={roomId}
-          accountDisplayName={authUser?.displayName || ''}
-          localVideoRef={localVideoRef}
-          cameraReady={cameraReady}
-          cameraSwitching={cameraSwitching}
-          cameraError={cameraError}
-          cameraFacingMode={cameraFacingMode}
-          onSwitchCamera={switchCamera}
-          onJoinRoom={handleEnterMeeting}
-          onCancel={handleCancelLobby}
-        />
+        <Suspense fallback={PAGE_LOADING}>
+          <PreJoinLobby
+            roomId={roomId}
+            accountDisplayName={authUser?.displayName || ''}
+            localVideoRef={localVideoRef}
+            cameraReady={cameraReady}
+            cameraSwitching={cameraSwitching}
+            cameraError={cameraError}
+            cameraFacingMode={cameraFacingMode}
+            onSwitchCamera={switchCamera}
+            onJoinRoom={handleEnterMeeting}
+            onCancel={handleCancelLobby}
+          />
+        </Suspense>
       </>
     );
   }
@@ -1184,28 +1225,31 @@ function App() {
   // Active Video Meeting Room
   return (
     <>
-      <VideoCall
-        localVideoRef={localVideoRef}
-        remoteStreams={remoteStreams}
-        participantNames={participantNames}
-        cameraFacingMode={cameraFacingMode}
-        cameraReady={cameraReady}
-        cameraSwitching={cameraSwitching}
-        cameraError={cameraError}
-        onSwitchCamera={switchCamera}
-        socket={socket}
-        roomId={roomId}
-        screenShareStream={screenShareStream}
-        onStartScreenShare={startScreenShare}
-        onStopScreenShare={stopScreenShare}
-        onLeaveCall={handleLeaveMeeting}
-        focusTimeLeft={focusTimeLeft}
-        focusTimerRunning={focusTimerRunning}
-        onStartFocusTimer={startFocusTimer}
-        onSessionExpired={handleSessionExpired}
-        canInviteFriends={Boolean(authUser)}
-        displayName={localDisplayNameRef.current || authUser?.displayName || 'Guest'}
-      />
+      <Suspense fallback={PAGE_LOADING}>
+        <VideoCall
+          localVideoRef={localVideoRef}
+          remoteStreams={remoteStreams}
+          roomTimer={roomTimer}
+          participantNames={participantNames}
+          cameraFacingMode={cameraFacingMode}
+          cameraReady={cameraReady}
+          cameraSwitching={cameraSwitching}
+          cameraError={cameraError}
+          onSwitchCamera={switchCamera}
+          socket={socket}
+          roomId={roomId}
+          screenShareStream={screenShareStream}
+          onStartScreenShare={startScreenShare}
+          onStopScreenShare={stopScreenShare}
+          onLeaveCall={handleLeaveMeeting}
+          focusTimeLeft={focusTimeLeft}
+          focusTimerRunning={focusTimerRunning}
+          onStartFocusTimer={startFocusTimer}
+          onSessionExpired={handleSessionExpired}
+          canInviteFriends={Boolean(authUser)}
+          displayName={localDisplayNameRef.current || authUser?.displayName || 'Guest'}
+        />
+      </Suspense>
     </>
   );
 }

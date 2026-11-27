@@ -303,6 +303,19 @@
 .vc-main--three-panels .watch-together,
 .vc-main--three-panels .room-notes { flex: 1 1 25%; }
 
+.room-notes-loading {
+  display: grid;
+  min-width: 0;
+  min-height: 280px;
+  flex: 1 1 25%;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 14px;
+  background: #151b1d;
+  color: #aab8b1;
+  font-size: 13px;
+}
+
 /* ════════════════════════════════════════════
    STAGE & ADAPTIVE GRID
    ════════════════════════════════════════════ */
@@ -522,7 +535,7 @@
 
 .vc-tile {
   position: relative;
-  background: #0b1b15;
+  background: #10251c;
   border-radius: var(--radius-md);
   overflow: hidden;
   cursor: pointer;
@@ -560,7 +573,7 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  background: #071a12;
+  background: #0c2118;
 }
 
 .vc-tile__frame video {
@@ -646,7 +659,7 @@
   transition: width var(--transition-normal), bottom var(--transition-normal), border-color var(--transition-fast);
   z-index: 15;
   touch-action: manipulation;
-  background: #0b1b15;
+  background: #10251c;
 }
 
 .vc-pip:hover {
@@ -689,7 +702,7 @@
 .vc-local-grid {
   position: relative;
   overflow: hidden;
-  background: #0b1b15;
+  background: #10251c;
   border-radius: var(--radius-md);
   cursor: pointer;
   touch-action: manipulation;
