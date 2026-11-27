@@ -2497,3 +2497,12 @@
   color: #d1dfd5;
   box-shadow: none;
 }
+.vc .vc-dialog__submit {
+  background: #37695f;
+  box-shadow: 0 4px 12px rgb(31 75 62 / 24%);
+  color: #fff;
+}
+.vc .vc-dialog__submit:hover:not(:disabled) {
+  background: #2e5c53;
+  box-shadow: 0 6px 16px rgb(31 75 62 / 32%);
+}
