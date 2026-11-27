@@ -140,6 +140,7 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [authServiceError, setAuthServiceError] = useState('');
   const authUserRef = useRef(null);
+  const localDisplayNameRef = useRef('Guest');
 
   // Device & Camera State
   const [cameraFacingMode, setCameraFacingMode] = useState('user');
@@ -191,6 +192,7 @@ function App() {
   const roomIdRef = useRef(roomId);
 
   const [remoteStreams, setRemoteStreams] = useState([]);
+  const [participantNames, setParticipantNames] = useState({});
   const [screenShareStream, setScreenShareStream] = useState(null);
 
   // Keep roomIdRef in sync
@@ -737,7 +739,9 @@ function App() {
       // ── Socket Events ──
       socketRef.current.on('connect', () => {
         console.log(`Connected to StudyRooms signalling: ${socketRef.current.id}`);
-        socketRef.current.emit('join-room', roomId);
+        socketRef.current.emit('join-room', roomId, {
+          displayName: localDisplayNameRef.current,
+        });
       });
       socketRef.current.on('connect_error', (error) => {
         console.error('Socket connection failed:', error.message);
@@ -747,8 +751,36 @@ function App() {
         console.log(`Study partner joined: ${userId}`);
       });
 
+      socketRef.current.on('room-participants', (participants) => {
+        if (!Array.isArray(participants)) return;
+        const names = participants.reduce((result, participant) => {
+          if (
+            typeof participant?.userId === 'string' &&
+            typeof participant.displayName === 'string' &&
+            participant.displayName.trim()
+          ) {
+            result[participant.userId] = participant.displayName.trim();
+          }
+          return result;
+        }, {});
+        setParticipantNames((previous) => ({ ...previous, ...names }));
+      });
+
+      socketRef.current.on('participant-joined', ({ userId, displayName } = {}) => {
+        if (typeof userId !== 'string' || typeof displayName !== 'string' || !displayName.trim()) return;
+        setParticipantNames((previous) => ({
+          ...previous,
+          [userId]: displayName.trim(),
+        }));
+      });
+
       socketRef.current.on('user-left', (userId) => {
         console.log(`User left: ${userId}`);
+        setParticipantNames((previous) => {
+          const next = { ...previous };
+          delete next[userId];
+          return next;
+        });
         const peer = peersRef.current.get(userId);
         if (peer) {
           peer.close();
@@ -923,11 +955,16 @@ function App() {
     setCurrentView('lobby');
   }, []);
 
-  const handleEnterMeeting = useCallback(() => {
+  const handleEnterMeeting = useCallback((displayName) => {
     if (!roomId) return;
+    localDisplayNameRef.current =
+      displayName?.trim() ||
+      authUser?.displayName?.trim() ||
+      localStorage.getItem('sr_display_name')?.trim() ||
+      'Guest';
     recordRecentRoom(roomId);
     setCurrentView('room');
-  }, [roomId]);
+  }, [authUser?.displayName, roomId]);
 
   const handleCancelLobby = useCallback(() => {
     // Stop local camera preview
@@ -1116,6 +1153,7 @@ function App() {
     <VideoCall
       localVideoRef={localVideoRef}
       remoteStreams={remoteStreams}
+      participantNames={participantNames}
       cameraFacingMode={cameraFacingMode}
       cameraReady={cameraReady}
       cameraSwitching={cameraSwitching}

@@ -21,7 +21,7 @@ function useElapsed(active) {
 }
 
 /* ─── remote video tile ─── */
-function RemoteTile({ userId, stream, source, isExpanded, onPointerUp, onKeyDown }) {
+function RemoteTile({ displayName, stream, source, isExpanded, onPointerUp, onKeyDown }) {
   const ref = useRef(null);
   useEffect(() => {
     if (ref.current && ref.current.srcObject !== stream) {
@@ -30,15 +30,15 @@ function RemoteTile({ userId, stream, source, isExpanded, onPointerUp, onKeyDown
   }, [stream]);
 
   const label = source === 'screen'
-    ? `Screen · ${userId.slice(0, 6)}`
-    : `Student · ${userId.slice(0, 6)}`;
+    ? `Screen · ${displayName}`
+    : displayName;
 
   return (
     <div
       className={`vc-tile ${source === 'screen' ? 'vc-tile--screen' : ''} ${isExpanded ? 'vc-tile--expanded' : ''}`}
       role="button"
       tabIndex={0}
-      aria-label={`${isExpanded ? 'Restore' : 'Expand'} ${source === 'screen' ? 'screen share' : 'video'} from ${userId.slice(0, 8)}`}
+      aria-label={`${isExpanded ? 'Restore' : 'Expand'} ${source === 'screen' ? 'screen share' : 'video'} from ${displayName}`}
       aria-pressed={isExpanded}
       onPointerUp={onPointerUp}
       onKeyDown={onKeyDown}
@@ -59,6 +59,7 @@ function RemoteTile({ userId, stream, source, isExpanded, onPointerUp, onKeyDown
 export default function VideoCall({
   localVideoRef,
   remoteStreams,
+  participantNames,
   cameraFacingMode,
   cameraReady,
   cameraSwitching,
@@ -436,10 +437,11 @@ export default function VideoCall({
             <div className={`vc-grid ${gridClass}`} style={adaptiveTileStyle}>
               {remoteStreams.map(({ userId, stream, source }) => {
                 const tileId = `remote:${userId}:${stream.id}`;
+                const displayName = participantNames[userId] || 'Student';
                 return (
                   <RemoteTile
                     key={tileId}
-                    userId={userId}
+                    displayName={displayName}
                     stream={stream}
                     source={source}
                     isExpanded={expandedTile === tileId}

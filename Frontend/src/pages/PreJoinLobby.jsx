@@ -61,7 +61,7 @@ export default function PreJoinLobby({
     if (displayName.trim()) {
       localStorage.setItem('sr_display_name', displayName.trim());
     }
-    onJoinRoom();
+    onJoinRoom(displayName.trim());
   };
 
   return (
