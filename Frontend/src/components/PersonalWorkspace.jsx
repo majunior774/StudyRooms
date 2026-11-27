@@ -174,7 +174,9 @@ export default function PersonalWorkspace({ displayName, section = 'overview', h
         <article className="sr-workspace__card">
           <div className="sr-workspace__cardtop"><span className="sr-workspace__icon">▤</span><span className="sr-workspace__count">{notes.length} saved</span></div>
           <h3>My Notes</h3><p>Capture ideas, summaries and useful references.</p>
-          <div className="sr-workspace__note-preview">{notes[0] ? <><strong>{notes[0].title}</strong><span>{notes[0].body}</span></> : <span>No notes yet. Create your first note.</span>}</div>
+          {notes[0]
+            ? <div className="sr-workspace__note-preview"><strong>{notes[0].title}</strong><span>{notes[0].body}</span></div>
+            : <button type="button" className="sr-workspace__note-preview sr-workspace__note-preview--empty" onClick={() => { openNote(null); onNavigate('notes'); }}><span>No notes yet. Create your first note.</span></button>}
           <button type="button" className="sr-workspace__link" onClick={() => { setEditingNote(null); onNavigate('notes'); }}>Open notes →</button>
         </article>
       </div>}

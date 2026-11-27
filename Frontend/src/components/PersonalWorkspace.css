@@ -197,6 +197,19 @@
   background: #f5f5f0;
 }
 
+.sr-workspace__note-preview--empty {
+  width: 100%;
+  color: var(--sr-ink-muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sr-workspace__note-preview--empty:hover {
+  border-color: #bdcec3;
+  background: #f0f3ee;
+}
+
 .sr-workspace__note-preview strong {
   font-size: 12px;
 }
