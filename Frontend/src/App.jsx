@@ -1048,12 +1048,12 @@ function App() {
     }
   }, [handleSessionExpired]);
 
-  const handleUpdateDisplayName = useCallback(async (displayName) => {
+  const handleUpdateProfile = useCallback(async (updates) => {
     const response = await fetch(`${apiBaseUrl}/api/auth/me`, {
       method: 'PATCH',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ displayName }),
+      body: JSON.stringify(updates),
     });
     const result = await response.json().catch(() => ({}));
     if (response.status === 401) {
@@ -1119,7 +1119,7 @@ function App() {
         onJoinRoom={handleJoinRoom}
         onBackToHome={() => setCurrentView('landing')}
         onLogout={handleLogout}
-        onUpdateDisplayName={handleUpdateDisplayName}
+        onUpdateProfile={handleUpdateProfile}
         onSessionExpired={handleSessionExpired}
         timerMode={focusTimerMode}
         timeLeft={focusTimeLeft}

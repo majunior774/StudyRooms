@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import StudyRoomsBrand from '../components/StudyRoomsBrand';
 import PersonalWorkspace from '../components/PersonalWorkspace';
 
@@ -51,7 +51,7 @@ export default function Dashboard({
   onJoinRoom,
   onBackToHome,
   onLogout,
-  onUpdateDisplayName,
+  onUpdateProfile,
   onSessionExpired,
   timerMode,
   timeLeft,
@@ -68,15 +68,13 @@ export default function Dashboard({
   const [searchQuery, setSearchQuery] = useState('');
 
   // Display Name personalization
-  const [displayName, setDisplayName] = useState(user?.displayName || '');
+  const displayName = user?.displayName || '';
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(displayName);
+  const username = user?.username || '';
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
+  const [usernameDraft, setUsernameDraft] = useState(user?.username || '');
   const [profileError, setProfileError] = useState('');
-
-  useEffect(() => {
-    setDisplayName(user?.displayName || '');
-    setNameDraft(user?.displayName || '');
-  }, [user?.id, user?.displayName]);
 
   // Recent Rooms (Local persistence only)
   const [recentRooms, setRecentRooms] = useState(() => {
@@ -111,13 +109,29 @@ export default function Dashboard({
       return;
     }
     try {
-      const updated = await onUpdateDisplayName(clean);
-      setDisplayName(updated.displayName);
+      const updated = await onUpdateProfile({ displayName: clean });
       setNameDraft(updated.displayName);
       setProfileError('');
       setIsEditingName(false);
     } catch (error) {
       setProfileError(error.message || 'Could not update your display name.');
+    }
+  };
+
+  const handleSaveUsername = async (e) => {
+    e?.preventDefault();
+    const clean = usernameDraft.trim().toLowerCase();
+    if (!/^[a-z0-9][a-z0-9_-]{2,31}$/.test(clean)) {
+      setProfileError('Use 3–32 letters, numbers, underscores, or hyphens; start with a letter or number.');
+      return;
+    }
+    try {
+      const updated = await onUpdateProfile({ username: clean });
+      setUsernameDraft(updated.username);
+      setProfileError('');
+      setIsEditingUsername(false);
+    } catch (error) {
+      setProfileError(error.message || 'Could not update your username.');
     }
   };
 
@@ -293,6 +307,64 @@ export default function Dashboard({
                 <span className="max-w-[100px] truncate font-medium">
                   {displayName || 'Set Name'}
                 </span>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="text-slate-400 group-hover:text-white transition-colors"
+                >
+                  <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          <div className="relative">
+            {isEditingUsername ? (
+              <form onSubmit={handleSaveUsername} className="flex items-center gap-1.5">
+                <span className="text-xs text-slate-400">@</span>
+                <input
+                  type="text"
+                  value={usernameDraft}
+                  onChange={(e) => setUsernameDraft(e.target.value)}
+                  placeholder="username"
+                  autoComplete="username"
+                  maxLength={32}
+                  autoFocus
+                  aria-label="Username"
+                  className="px-2.5 py-1 text-xs rounded-lg bg-slate-800 border border-indigo-500/50 text-white focus:outline-none w-28 sm:w-36"
+                />
+                <button
+                  type="submit"
+                  className="px-2 py-1 text-[11px] font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-all cursor-pointer"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingUsername(false)}
+                  className="px-1.5 py-1 text-[11px] text-slate-400 hover:text-white transition-all cursor-pointer"
+                  aria-label="Cancel username edit"
+                >
+                  ✕
+                </button>
+              </form>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setUsernameDraft(username);
+                  setProfileError('');
+                  setIsEditingUsername(true);
+                }}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-white/10 text-xs text-slate-300 transition-all cursor-pointer group"
+                title="Edit your unique username"
+                aria-label={`Edit username ${username}`}
+              >
+                <span className="max-w-[120px] truncate font-medium">@{username}</span>
                 <svg
                   width="12"
                   height="12"
