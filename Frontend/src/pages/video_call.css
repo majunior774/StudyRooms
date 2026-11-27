@@ -283,7 +283,8 @@
 }
 
 .vc-main--panels .whiteboard,
-.vc-main--panels .watch-together {
+.vc-main--panels .watch-together,
+.vc-main--panels .room-notes {
   flex: 1 1 48%;
 }
 
@@ -292,9 +293,15 @@
 }
 
 .vc-main--two-panels .whiteboard,
-.vc-main--two-panels .watch-together {
+.vc-main--two-panels .watch-together,
+.vc-main--two-panels .room-notes {
   flex: 1 1 33%;
 }
+
+.vc-main--three-panels .vc-stage { flex: 1 1 25%; }
+.vc-main--three-panels .whiteboard,
+.vc-main--three-panels .watch-together,
+.vc-main--three-panels .room-notes { flex: 1 1 25%; }
 
 /* ════════════════════════════════════════════
    STAGE & ADAPTIVE GRID
@@ -1512,7 +1519,8 @@
   }
 
   .vc-main--panels .whiteboard,
-  .vc-main--panels .watch-together {
+  .vc-main--panels .watch-together,
+  .vc-main--panels .room-notes {
     flex: 1 1 32%;
   }
 }
@@ -1544,7 +1552,8 @@
 
   .vc-main--panels .vc-stage { min-height: 240px; flex: 0 0 48vh; }
   .vc-main--panels .whiteboard,
-  .vc-main--panels .watch-together { min-height: 280px; flex: 0 0 52vh; }
+  .vc-main--panels .watch-together,
+  .vc-main--panels .room-notes { min-height: 280px; flex: 0 0 52vh; }
 }
 
 @media (max-width: 360px) {
@@ -1715,7 +1724,8 @@
   .vc-main--panels .vc-pip__badge { display: none; }
 
   .vc-main--panels .whiteboard,
-  .vc-main--panels .watch-together {
+  .vc-main--panels .watch-together,
+  .vc-main--panels .room-notes {
     width: 100%;
     height: calc(100dvh - 132px);
     min-height: 380px;
@@ -1766,7 +1776,8 @@
   .vc-main--panels.vc-main--video-focused .vc-pip { width: 95px; aspect-ratio: 3 / 4; right: 10px; bottom: 90px; }
   .vc-main--panels.vc-main--video-focused .vc-pip__badge { display: inline-flex; }
   .vc-main--panels.vc-main--video-focused .whiteboard,
-  .vc-main--panels.vc-main--video-focused .watch-together {
+  .vc-main--panels.vc-main--video-focused .watch-together,
+  .vc-main--panels.vc-main--video-focused .room-notes {
     height: calc(100dvh - 132px);
     min-height: 380px;
   }

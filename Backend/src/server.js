@@ -12,6 +12,7 @@ import FriendsRouter from "./Routes/FriendsRoute.js";
 import registerWhiteboardHandlers from "./whiteboard.js";
 import registerYouTubeHandlers from "./youtube.js";
 import registerChatHandlers from "./chat.js";
+import registerRoomNotesHandlers from "./roomNotes.js";
 
 dotenv.config();
 
@@ -64,6 +65,7 @@ io.on("connection",(socket)=>{
     registerWhiteboardHandlers(io, socket);
     registerYouTubeHandlers(io, socket);
     registerChatHandlers(io, socket);
+    registerRoomNotesHandlers(io, socket);
 
     socket.on("join-room",(roomId, participant = {})=>{
         console.log(`user wants to join ${roomId}`);
@@ -151,7 +153,7 @@ io.on("connection",(socket)=>{
     });
     socket.on("room:tool-started", (payload = {}) => {
         const { roomId, tool } = payload;
-        const allowedTools = new Set(["whiteboard", "watch-together", "chat", "screen-share"]);
+        const allowedTools = new Set(["whiteboard", "watch-together", "room-notes", "chat", "screen-share"]);
         if (
             typeof roomId !== "string" ||
             roomId.length === 0 ||

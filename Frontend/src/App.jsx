@@ -1122,7 +1122,6 @@ function App() {
           onAuthenticated={handleAuthenticated}
           onGoToLanding={() => setCurrentView('landing')}
         />
-        {themeToggle}
       </>
     );
   }
@@ -1135,7 +1134,6 @@ function App() {
           onJoinRoom={handleJoinRoom}
           onOpenDashboard={() => setCurrentView(authUserRef.current ? 'dashboard' : 'auth')}
         />
-        {themeToggle}
       </>
     );
   }
@@ -1158,8 +1156,8 @@ function App() {
           onSelectTimerMode={selectFocusTimerMode}
           onToggleTimer={toggleFocusTimer}
           onResetTimer={resetFocusTimer}
+          themeToggle={themeToggle}
         />
-        {themeToggle}
       </>
     );
   }
@@ -1179,7 +1177,6 @@ function App() {
           onJoinRoom={handleEnterMeeting}
           onCancel={handleCancelLobby}
         />
-        {themeToggle}
       </>
     );
   }
@@ -1207,8 +1204,8 @@ function App() {
         onStartFocusTimer={startFocusTimer}
         onSessionExpired={handleSessionExpired}
         canInviteFriends={Boolean(authUser)}
+        displayName={localDisplayNameRef.current || authUser?.displayName || 'Guest'}
       />
-      {themeToggle}
     </>
   );
 }

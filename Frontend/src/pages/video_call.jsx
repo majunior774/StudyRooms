@@ -5,11 +5,13 @@ import YouTubeWatchTogether from '../components/YouTubeWatchTogether';
 import StudyRoomsBrand, { StudyRoomsIcon } from '../components/StudyRoomsBrand';
 import RoomInviteDialog from '../components/RoomInviteDialog';
 import RoomChatPanel from '../components/RoomChatPanel';
+import RoomNotes from '../components/RoomNotes';
 
 const MAX_CHAT_MESSAGES = 100;
 const ROOM_TOOL_LABELS = {
   whiteboard: 'Live Whiteboard',
   'watch-together': 'Watch Together',
+  'room-notes': 'Room Notes',
   chat: 'Room Chat',
   'screen-share': 'Screen Share',
 };
@@ -86,6 +88,7 @@ export default function VideoCall({
   onStartFocusTimer,
   onSessionExpired,
   canInviteFriends,
+  displayName = 'Guest',
 }) {
   const [localExpanded, setLocalExpanded] = useState(false);
   const [expandedTile, setExpandedTile] = useState(null);
@@ -102,6 +105,7 @@ export default function VideoCall({
   const [showControls, setShowControls] = useState(true);
   const [whiteboardOpen, setWhiteboardOpen] = useState(false);
   const [watchTogetherOpen, setWatchTogetherOpen] = useState(false);
+  const [roomNotesOpen, setRoomNotesOpen] = useState(false);
   const [videoStageFocused, setVideoStageFocused] = useState(false);
   const [screenShareDialogOpen, setScreenShareDialogOpen] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
@@ -439,7 +443,8 @@ export default function VideoCall({
   const focusTimeDisplay = `${String(Math.floor(focusTimeLeft / 60)).padStart(2, '0')}:${String(
     focusTimeLeft % 60
   ).padStart(2, '0')}`;
-  const hasOpenStudyPanel = whiteboardOpen || watchTogetherOpen;
+  const hasOpenStudyPanel = whiteboardOpen || watchTogetherOpen || roomNotesOpen;
+  const openStudyPanelCount = [whiteboardOpen, watchTogetherOpen, roomNotesOpen].filter(Boolean).length;
 
   const announceToolStarted = (tool) => socket?.emit('room:tool-started', { roomId, tool });
   const toggleRoomTool = (tool, setOpen, isOpen) => {
@@ -451,6 +456,7 @@ export default function VideoCall({
     if (!toolActivity) return;
     if (toolActivity.tool === 'whiteboard') setWhiteboardOpen(true);
     if (toolActivity.tool === 'watch-together') setWatchTogetherOpen(true);
+    if (toolActivity.tool === 'room-notes') setRoomNotesOpen(true);
     if (toolActivity.tool === 'chat') setChatOpen(true);
     if (toolActivity.tool === 'screen-share') {
       const sharedScreen = remoteStreams.find((item) => item.userId === toolActivity.userId && item.source === 'screen');
@@ -537,7 +543,7 @@ export default function VideoCall({
       </header>
 
       {/* ── Main Content Area ── */}
-      <div className={`vc-main ${hasOpenStudyPanel ? 'vc-main--panels' : ''} ${whiteboardOpen && watchTogetherOpen ? 'vc-main--two-panels' : ''} ${videoStageFocused ? 'vc-main--video-focused' : ''}`}>
+      <div className={`vc-main ${hasOpenStudyPanel ? 'vc-main--panels' : ''} ${openStudyPanelCount === 2 ? 'vc-main--two-panels' : ''} ${openStudyPanelCount > 2 ? 'vc-main--three-panels' : ''} ${videoStageFocused ? 'vc-main--video-focused' : ''}`}>
         {/* ── Video Stage ── */}
         <main
           className={`vc-stage ${useAdaptiveGrid ? 'vc-stage--adaptive' : ''} ${localInGrid ? 'vc-stage--adaptive-grid' : ''}`}
@@ -677,6 +683,14 @@ export default function VideoCall({
             onClose={() => setWatchTogetherOpen(false)}
           />
         )}
+        {roomNotesOpen && (
+          <RoomNotes
+            socket={socket}
+            roomId={roomId}
+            displayName={displayName}
+            onClose={() => setRoomNotesOpen(false)}
+          />
+        )}
       </div>
 
       {/* ── Floating Controls Dock ── */}
@@ -701,7 +715,7 @@ export default function VideoCall({
                 <circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" />
                 <circle cx="5" cy="19" r="2" /><circle cx="12" cy="19" r="2" /><circle cx="19" cy="19" r="2" />
               </svg>
-              {(whiteboardOpen || watchTogetherOpen || screenShareStream || chatOpen) && <span className="vc-tools__dot" />}
+              {(whiteboardOpen || watchTogetherOpen || roomNotesOpen || screenShareStream || chatOpen) && <span className="vc-tools__dot" />}
               <span className="vc-btn__label">Tools</span>
             </summary>
             <div className="vc-tools__dropdown" role="group" aria-label="Study tools">
@@ -743,6 +757,18 @@ export default function VideoCall({
                 </svg>
                 <span>Watch Together</span>
                 {watchTogetherOpen && <span className="vc-tools__status">Open</span>}
+              </button>
+              <button
+                type="button"
+                className={`vc-tools__option ${roomNotesOpen ? 'vc-tools__option--active' : ''}`}
+                onClick={() => toggleRoomTool('room-notes', setRoomNotesOpen, roomNotesOpen)}
+                aria-pressed={roomNotesOpen}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M5 3h11l3 3v15H5z" /><path d="M8 11h8M8 15h8M8 7h5" />
+                </svg>
+                <span>Room Notes</span>
+                {roomNotesOpen && <span className="vc-tools__status">Open</span>}
               </button>
               <button
                 type="button"
