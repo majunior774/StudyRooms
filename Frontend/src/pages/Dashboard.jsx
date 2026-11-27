@@ -504,7 +504,8 @@ export default function Dashboard({
       </header>
 
       {profileError && (
-        <p role="alert" className="px-4 sm:px-6 pt-3 text-xs text-rose-400">
+        <p role="alert" className="sr-dashboard__profile-error">
+          <span aria-hidden="true">!</span>
           {profileError}
         </p>
       )}

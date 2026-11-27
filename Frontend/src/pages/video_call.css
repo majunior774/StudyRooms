@@ -1466,6 +1466,50 @@
   }
 }
 
+@media (max-width: 600px) {
+  .vc-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 8px;
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .vc-header__left { min-width: 0; gap: 6px; }
+  .vc-header__left .sr-brand__wordmark { display: none; }
+  .vc-header__room-pill { min-width: 0; }
+  .vc-header__room-id { max-width: clamp(60px, 25vw, 112px); }
+  .vc-header__center { grid-column: 1 / -1; grid-row: 2; justify-self: center; }
+  .vc-header__right { grid-column: 2; grid-row: 1; }
+  .vc-header__count { padding-inline: 8px; font-size: 10px; }
+
+  .vc-main--panels {
+    min-height: 0;
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .vc-main--panels .vc-stage { min-height: 240px; flex: 0 0 48vh; }
+  .vc-main--panels .whiteboard,
+  .vc-main--panels .watch-together { min-height: 280px; flex: 0 0 52vh; }
+}
+
+@media (max-width: 360px) {
+  .vc-bar { padding-right: 8px; padding-left: 8px; }
+  .vc-bar__inner { max-width: 100%; }
+  .vc-btn { width: 40px; height: 40px; }
+  .vc-tools__dropdown { left: 0; width: min(220px, calc(100vw - 24px)); transform: none; }
+}
+
+@media (max-width: 480px) {
+  .vc-dialog { padding: 18px; }
+  .vc-dialog__setting { align-items: stretch; flex-direction: column; gap: 7px; }
+  .vc-dialog__setting select { width: 100%; min-width: 0; }
+  .vc-dialog__header h2 { font-size: 18px; }
+}
+
 /* ════════════════════════════════════════════
    RESPONSIVE — LANDSCAPE PHONES
    ════════════════════════════════════════════ */

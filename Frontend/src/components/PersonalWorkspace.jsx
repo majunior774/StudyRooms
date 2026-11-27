@@ -27,6 +27,7 @@ export default function PersonalWorkspace({ displayName, section = 'overview', h
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [taskDraft, setTaskDraft] = useState('');
+  const [taskPriority, setTaskPriority] = useState('Medium');
   const [noteTitle, setNoteTitle] = useState('');
   const [noteBody, setNoteBody] = useState('');
   const [editingNote, setEditingNote] = useState(null);
@@ -62,10 +63,11 @@ export default function PersonalWorkspace({ displayName, section = 'overview', h
     try {
       const { task } = await workspaceRequest('/tasks', {
         method: 'POST',
-        body: JSON.stringify({ title: taskDraft.trim() }),
+        body: JSON.stringify({ title: taskDraft.trim(), priority: taskPriority }),
       }, onSessionExpired);
       setTasks((current) => [task, ...current]);
       setTaskDraft('');
+      setTaskPriority('Medium');
       setError('');
     } catch (saveError) {
       setError(saveError.message);
@@ -84,6 +86,27 @@ export default function PersonalWorkspace({ displayName, section = 'overview', h
       const { task: savedTask } = await workspaceRequest(`/tasks/${encodeURIComponent(id)}`, {
         method: 'PATCH',
         body: JSON.stringify({ done: updatedTask.done }),
+      }, onSessionExpired);
+      setTasks((current) => current.map((item) => item.id === id ? savedTask : item));
+      setError('');
+    } catch (saveError) {
+      setTasks((current) => current.map((item) => item.id === id ? task : item));
+      setError(saveError.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+  const changeTaskPriority = async (id, priority) => {
+    if (saving) return;
+    const task = tasks.find((item) => item.id === id);
+    if (!task || task.priority === priority) return;
+    const updatedTask = { ...task, priority };
+    setTasks((current) => current.map((item) => item.id === id ? updatedTask : item));
+    setSaving(true);
+    try {
+      const { task: savedTask } = await workspaceRequest(`/tasks/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ priority }),
       }, onSessionExpired);
       setTasks((current) => current.map((item) => item.id === id ? savedTask : item));
       setError('');
@@ -183,8 +206,8 @@ export default function PersonalWorkspace({ displayName, section = 'overview', h
 
       {section === 'tasks' && <div className="sr-workspace__detail">
         <div className="sr-workspace__detail-head"><div><h3>My Tasks</h3><p>{pending} tasks left to complete</p></div><span className="sr-workspace__count">{completed}/{tasks.length} done</span></div>
-        <form className="sr-workspace__add" onSubmit={addTask}><input value={taskDraft} onChange={(e) => setTaskDraft(e.target.value)} placeholder="Add a task to your list..." aria-label="New task"/><button type="submit" disabled={saving || !taskDraft.trim()}>＋ Add task</button></form>
-        <div className="sr-workspace__tasklist">{tasks.map((task) => <div className="sr-workspace__task" key={task.id}><label><input type="checkbox" checked={task.done} disabled={saving} onChange={() => toggleTask(task.id)}/><span className={task.done ? 'is-done' : ''}>{task.title}</span></label><span className={`sr-workspace__priority priority-${task.priority.toLowerCase()}`}>{task.priority}</span><button disabled={saving} aria-label={`Delete ${task.title}`} onClick={() => removeTask(task.id)}>×</button></div>)}{!tasks.length && <p className="sr-workspace__empty">No tasks yet. Add your first one above.</p>}</div>
+        <form className="sr-workspace__add" onSubmit={addTask}><input value={taskDraft} onChange={(e) => setTaskDraft(e.target.value)} placeholder="Add a task to your list..." aria-label="New task"/><select className="sr-workspace__priority-select" aria-label="New task priority" value={taskPriority} disabled={saving} onChange={(e) => setTaskPriority(e.target.value)}><option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option></select><button type="submit" disabled={saving || !taskDraft.trim()}>＋ Add task</button></form>
+        <div className="sr-workspace__tasklist">{tasks.map((task) => <div className="sr-workspace__task" key={task.id}><label><input type="checkbox" checked={task.done} disabled={saving} onChange={() => toggleTask(task.id)}/><span className={task.done ? 'is-done' : ''}>{task.title}</span></label><select className={`sr-workspace__priority-select priority-${task.priority.toLowerCase()}`} aria-label={`Priority for ${task.title}`} value={task.priority} disabled={saving} onChange={(e) => changeTaskPriority(task.id, e.target.value)}><option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option></select><button disabled={saving} aria-label={`Delete ${task.title}`} onClick={() => removeTask(task.id)}>×</button></div>)}{!tasks.length && <p className="sr-workspace__empty">No tasks yet. Add your first one above.</p>}</div>
       </div>}
 
       {section === 'notes' && <div className="sr-workspace__detail">

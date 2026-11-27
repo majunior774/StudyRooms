@@ -147,7 +147,12 @@ export default function LandingPage({ onCreateRoom, onJoinRoom, onOpenDashboard,
         </section>
       </main>
 
-      <footer className="sr-home__footer"><StudyRoomsBrand size="sm" className="sr-home__brand" /><span>Study together, wherever you are.</span><button type="button" onClick={onCreateRoom}>Create a study room <span aria-hidden="true">↗</span></button></footer>
+      <footer className="sr-home__footer">
+        <StudyRoomsBrand size="sm" className="sr-home__brand" />
+        <span>Study together, wherever you are.</span>
+        <button type="button" onClick={onCreateRoom}>Create a study room <span aria-hidden="true">↗</span></button>
+        <small className="sr-home__credit">Made by Sumit Kumar &amp; Aayush Aryan · Minor project · Under the supervision of Rekha Ma’am</small>
+      </footer>
     </div>
   );
 }

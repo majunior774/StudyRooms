@@ -420,6 +420,7 @@
 .watch-together-player:fullscreen {
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   background: #080F1A;
 }
 
@@ -499,6 +500,7 @@
 
   .watch-together-control-row {
     gap: 6px;
+    flex-wrap: wrap;
   }
 
   .watch-together-volume input {
@@ -508,4 +510,15 @@
   .watch-together-footer > span {
     display: none;
   }
+}
+
+@media (max-width: 380px) {
+  .watch-together-heading { gap: 6px; padding-inline: 8px; }
+  .watch-together-brand { gap: 7px; }
+  .watch-together-live { padding-inline: 7px; font-size: 8px; }
+  .watch-together-share { padding-inline: 8px; }
+  .watch-together-input-row { gap: 5px; }
+  .watch-together-input-row button { min-width: 58px; padding-inline: 8px; }
+  .watch-together-controls { padding-right: 8px; padding-left: 8px; }
+  .watch-together-volume input { width: 38px; }
 }
