@@ -6,7 +6,7 @@ import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import PreJoinLobby from './pages/PreJoinLobby';
 import AuthPage from './pages/AuthPage';
-
+// trying
 const apiBaseUrl = import.meta.env.DEV
   ? ''
   : (import.meta.env.VITE_SERVER_URL || '').replace(/\/$/, '');
