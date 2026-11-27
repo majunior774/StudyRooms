@@ -16,6 +16,8 @@
   gap: 16px;
 }
 
+.sr-workspace__heading-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+
 .sr-workspace__eyebrow {
   margin: 0 0 5px;
   color: var(--sr-green);

@@ -20,7 +20,7 @@ async function workspaceRequest(path, options = {}, onSessionExpired) {
   return result;
 }
 
-export default function PersonalWorkspace({ displayName, section = 'overview', hidden = false, onNavigate = () => {}, onSessionExpired }) {
+export default function PersonalWorkspace({ displayName, section = 'overview', hidden = false, onNavigate = () => {}, onSessionExpired, themeToggle }) {
   const [tasks, setTasks] = useState([]);
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -178,7 +178,10 @@ export default function PersonalWorkspace({ displayName, section = 'overview', h
           <h2 className="sr-font-heading">Personal Workspace</h2>
           <p className="sr-workspace__sub">Your tasks and notes, all in one place.</p>
         </div>
-        <span className="sr-workspace__private">♙ Personal · {displayName || 'This browser'}</span>
+        <div className="sr-workspace__heading-actions">
+          {section === 'overview' && themeToggle}
+          <span className="sr-workspace__private">♙ Personal · {displayName || 'This browser'}</span>
+        </div>
       </div>
 
       <div className="sr-workspace__content">

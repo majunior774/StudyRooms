@@ -65,6 +65,7 @@ export default function Dashboard({
   onSelectTimerMode,
   onToggleTimer,
   onResetTimer,
+  themeToggle,
 }) {
   const [activeSection, setActiveSection] = useState('overview');
   const [incomingFriendRequestCount, setIncomingFriendRequestCount] = useState(0);
@@ -574,6 +575,7 @@ export default function Dashboard({
         <PersonalWorkspace
           displayName={displayName}
           section={workspaceSection || 'overview'}
+          themeToggle={themeToggle}
           hidden={!workspaceSection}
           onNavigate={setActiveSection}
           onSessionExpired={onSessionExpired}
