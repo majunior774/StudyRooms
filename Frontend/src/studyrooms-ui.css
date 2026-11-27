@@ -1567,6 +1567,7 @@
   --home-muted: #6b7972;
   --home-green: #37695f;
   --home-line: #dce3dc;
+  height: 100dvh;
   min-height: 100dvh;
   overflow-x: hidden;
   overflow-y: auto;
