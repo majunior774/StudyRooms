@@ -6,6 +6,7 @@ import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import PreJoinLobby from './pages/PreJoinLobby';
 import AuthPage from './pages/AuthPage';
+import ThemeToggle from './components/ThemeToggle';
 import { friendsRequest } from './services/friendsApi';
 // trying
 const apiBaseUrl = import.meta.env.DEV
@@ -135,6 +136,9 @@ function App() {
   };
 
   const [initial] = useState(getInitialState);
+  const [darkMode, setDarkMode] = useState(() => {
+    try { return localStorage.getItem('sr_theme') === 'dark'; } catch { return false; }
+  });
   const [currentView, setCurrentView] = useState(initial.view); // 'auth' | 'landing' | 'dashboard' | 'lobby' | 'room'
   const [roomId, setRoomId] = useState(initial.room);
   const [authUser, setAuthUser] = useState(null);
@@ -142,6 +146,13 @@ function App() {
   const [authServiceError, setAuthServiceError] = useState('');
   const authUserRef = useRef(null);
   const localDisplayNameRef = useRef('Guest');
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
+    try { localStorage.setItem('sr_theme', darkMode ? 'dark' : 'light'); } catch { /* Storage may be unavailable. */ }
+  }, [darkMode]);
+
+  const themeToggle = <ThemeToggle dark={darkMode} onToggle={() => setDarkMode((value) => !value)} />;
 
   // Device & Camera State
   const [cameraFacingMode, setCameraFacingMode] = useState('user');
@@ -1103,86 +1114,101 @@ function App() {
   // ─── View Router Render ───
   if (currentView === 'auth') {
     return (
-      <AuthPage
-        isLoading={authLoading}
-        serviceError={authServiceError}
-        onAuthenticated={handleAuthenticated}
-        onGoToLanding={() => setCurrentView('landing')}
-      />
+      <>
+        <AuthPage
+          isLoading={authLoading}
+          serviceError={authServiceError}
+          onAuthenticated={handleAuthenticated}
+          onGoToLanding={() => setCurrentView('landing')}
+        />
+        {themeToggle}
+      </>
     );
   }
 
   if (currentView === 'landing') {
     return (
-      <LandingPage
-        onCreateRoom={handleCreateRoom}
-        onJoinRoom={handleJoinRoom}
-        onOpenDashboard={() => setCurrentView(authUserRef.current ? 'dashboard' : 'auth')}
-      />
+      <>
+        <LandingPage
+          onCreateRoom={handleCreateRoom}
+          onJoinRoom={handleJoinRoom}
+          onOpenDashboard={() => setCurrentView(authUserRef.current ? 'dashboard' : 'auth')}
+        />
+        {themeToggle}
+      </>
     );
   }
 
   if (currentView === 'dashboard') {
     return (
-      <Dashboard
-        user={authUser}
-        onCreateRoom={handleCreateRoom}
-        onJoinRoom={handleJoinRoom}
-        onInviteFriendToNewRoom={handleInviteFriendToNewRoom}
-        onBackToHome={() => setCurrentView('landing')}
-        onLogout={handleLogout}
-        onUpdateProfile={handleUpdateProfile}
-        onSessionExpired={handleSessionExpired}
-        timerMode={focusTimerMode}
-        timeLeft={focusTimeLeft}
-        timerRunning={focusTimerRunning}
-        onSelectTimerMode={selectFocusTimerMode}
-        onToggleTimer={toggleFocusTimer}
-        onResetTimer={resetFocusTimer}
-      />
+      <>
+        <Dashboard
+          user={authUser}
+          onCreateRoom={handleCreateRoom}
+          onJoinRoom={handleJoinRoom}
+          onInviteFriendToNewRoom={handleInviteFriendToNewRoom}
+          onBackToHome={() => setCurrentView('landing')}
+          onLogout={handleLogout}
+          onUpdateProfile={handleUpdateProfile}
+          onSessionExpired={handleSessionExpired}
+          timerMode={focusTimerMode}
+          timeLeft={focusTimeLeft}
+          timerRunning={focusTimerRunning}
+          onSelectTimerMode={selectFocusTimerMode}
+          onToggleTimer={toggleFocusTimer}
+          onResetTimer={resetFocusTimer}
+        />
+        {themeToggle}
+      </>
     );
   }
 
   if (currentView === 'lobby') {
     return (
-      <PreJoinLobby
-        roomId={roomId}
-        accountDisplayName={authUser?.displayName || ''}
-        localVideoRef={localVideoRef}
-        cameraReady={cameraReady}
-        cameraSwitching={cameraSwitching}
-        cameraError={cameraError}
-        cameraFacingMode={cameraFacingMode}
-        onSwitchCamera={switchCamera}
-        onJoinRoom={handleEnterMeeting}
-        onCancel={handleCancelLobby}
-      />
+      <>
+        <PreJoinLobby
+          roomId={roomId}
+          accountDisplayName={authUser?.displayName || ''}
+          localVideoRef={localVideoRef}
+          cameraReady={cameraReady}
+          cameraSwitching={cameraSwitching}
+          cameraError={cameraError}
+          cameraFacingMode={cameraFacingMode}
+          onSwitchCamera={switchCamera}
+          onJoinRoom={handleEnterMeeting}
+          onCancel={handleCancelLobby}
+        />
+        {themeToggle}
+      </>
     );
   }
 
   // Active Video Meeting Room
   return (
-    <VideoCall
-      localVideoRef={localVideoRef}
-      remoteStreams={remoteStreams}
-      participantNames={participantNames}
-      cameraFacingMode={cameraFacingMode}
-      cameraReady={cameraReady}
-      cameraSwitching={cameraSwitching}
-      cameraError={cameraError}
-      onSwitchCamera={switchCamera}
-      socket={socket}
-      roomId={roomId}
-      screenShareStream={screenShareStream}
-      onStartScreenShare={startScreenShare}
-      onStopScreenShare={stopScreenShare}
-      onLeaveCall={handleLeaveMeeting}
-      focusTimeLeft={focusTimeLeft}
-      focusTimerRunning={focusTimerRunning}
-      onStartFocusTimer={startFocusTimer}
-      onSessionExpired={handleSessionExpired}
-      canInviteFriends={Boolean(authUser)}
-    />
+    <>
+      <VideoCall
+        localVideoRef={localVideoRef}
+        remoteStreams={remoteStreams}
+        participantNames={participantNames}
+        cameraFacingMode={cameraFacingMode}
+        cameraReady={cameraReady}
+        cameraSwitching={cameraSwitching}
+        cameraError={cameraError}
+        onSwitchCamera={switchCamera}
+        socket={socket}
+        roomId={roomId}
+        screenShareStream={screenShareStream}
+        onStartScreenShare={startScreenShare}
+        onStopScreenShare={stopScreenShare}
+        onLeaveCall={handleLeaveMeeting}
+        focusTimeLeft={focusTimeLeft}
+        focusTimerRunning={focusTimerRunning}
+        onStartFocusTimer={startFocusTimer}
+        onSessionExpired={handleSessionExpired}
+        canInviteFriends={Boolean(authUser)}
+      />
+      {themeToggle}
+    </>
   );
 }
 
