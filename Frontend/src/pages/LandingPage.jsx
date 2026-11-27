@@ -64,7 +64,6 @@ export default function LandingPage({ onCreateRoom, onJoinRoom, onOpenDashboard,
       </header>
 
       <main>
-        {notice && <p className="sr-home__welcome" role="status">{notice}</p>}
         <section className="sr-home__hero" aria-labelledby="home-heading">
           <div className="sr-home__hero-copy">
             <div className="sr-home__eyebrow"><span /> A little more together</div>
