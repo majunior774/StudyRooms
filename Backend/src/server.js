@@ -11,6 +11,7 @@ import WorkspaceRouter from "./Routes/WorkspaceRoute.js";
 import FriendsRouter from "./Routes/FriendsRoute.js";
 import registerWhiteboardHandlers from "./whiteboard.js";
 import registerYouTubeHandlers from "./youtube.js";
+import registerChatHandlers from "./chat.js";
 
 dotenv.config();
 
@@ -62,6 +63,7 @@ io.on("connection",(socket)=>{
     console.log(`Connected: ${socket.id}`);
     registerWhiteboardHandlers(io, socket);
     registerYouTubeHandlers(io, socket);
+    registerChatHandlers(io, socket);
 
     socket.on("join-room",(roomId, participant = {})=>{
         console.log(`user wants to join ${roomId}`);

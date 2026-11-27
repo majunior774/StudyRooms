@@ -4,6 +4,9 @@ import Whiteboard from '../components/Whiteboard';
 import YouTubeWatchTogether from '../components/YouTubeWatchTogether';
 import StudyRoomsBrand, { StudyRoomsIcon } from '../components/StudyRoomsBrand';
 import RoomInviteDialog from '../components/RoomInviteDialog';
+import RoomChatPanel from '../components/RoomChatPanel';
+
+const MAX_CHAT_MESSAGES = 100;
 
 /* ─── small helper: format elapsed call time ─── */
 function useElapsed(active) {
@@ -95,6 +98,9 @@ export default function VideoCall({
   const [watchTogetherOpen, setWatchTogetherOpen] = useState(false);
   const [screenShareDialogOpen, setScreenShareDialogOpen] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatError, setChatError] = useState('');
   const [screenShareError, setScreenShareError] = useState('');
   const [screenShareWarning, setScreenShareWarning] = useState('');
   const [screenQuality, setScreenQuality] = useState('1080');
@@ -121,6 +127,35 @@ export default function VideoCall({
     updateFullscreen();
     return () => document.removeEventListener('fullscreenchange', updateFullscreen);
   }, []);
+
+  useEffect(() => {
+    if (!socket) return undefined;
+
+    const handleChatMessage = (message) => {
+      if (
+        message?.roomId !== roomId ||
+        typeof message.id !== 'string' ||
+        typeof message.senderId !== 'string' ||
+        typeof message.senderName !== 'string' ||
+        typeof message.text !== 'string' ||
+        typeof message.timestamp !== 'string'
+      ) {
+        return;
+      }
+      setChatMessages((previous) => [...previous, message].slice(-MAX_CHAT_MESSAGES));
+      setChatError('');
+    };
+    const handleChatError = (payload = {}) => {
+      setChatError(payload.message || 'Could not send your message.');
+    };
+
+    socket.on('chat:message', handleChatMessage);
+    socket.on('chat:error', handleChatError);
+    return () => {
+      socket.off('chat:message', handleChatMessage);
+      socket.off('chat:error', handleChatError);
+    };
+  }, [roomId, socket]);
 
   /* ── screen share preview ── */
   useEffect(() => {
@@ -585,7 +620,7 @@ export default function VideoCall({
                 <circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" />
                 <circle cx="5" cy="19" r="2" /><circle cx="12" cy="19" r="2" /><circle cx="19" cy="19" r="2" />
               </svg>
-              {(whiteboardOpen || watchTogetherOpen || screenShareStream) && <span className="vc-tools__dot" />}
+              {(whiteboardOpen || watchTogetherOpen || screenShareStream || chatOpen) && <span className="vc-tools__dot" />}
               <span className="vc-btn__label">Tools</span>
             </summary>
             <div className="vc-tools__dropdown" role="group" aria-label="Study tools">
@@ -627,6 +662,21 @@ export default function VideoCall({
                 </svg>
                 <span>Watch Together</span>
                 {watchTogetherOpen && <span className="vc-tools__status">Open</span>}
+              </button>
+              <button
+                type="button"
+                className={`vc-tools__option ${chatOpen ? 'vc-tools__option--active' : ''}`}
+                onClick={() => {
+                  toolsMenuRef.current.open = false;
+                  setChatOpen((open) => !open);
+                }}
+                aria-pressed={chatOpen}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z" />
+                </svg>
+                <span>Room Chat</span>
+                {chatOpen && <span className="vc-tools__status">Open</span>}
               </button>
               <button
                 type="button"
@@ -775,6 +825,18 @@ export default function VideoCall({
           roomId={roomId}
           onClose={() => setInviteDialogOpen(false)}
           onSessionExpired={onSessionExpired}
+        />
+      )}
+
+      {chatOpen && (
+        <RoomChatPanel
+          socket={socket}
+          roomId={roomId}
+          messages={chatMessages}
+          error={chatError}
+          onClearError={() => setChatError('')}
+          onError={setChatError}
+          onClose={() => setChatOpen(false)}
         />
       )}
 
