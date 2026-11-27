@@ -512,7 +512,7 @@
 
 .vc-tile {
   position: relative;
-  background: var(--sr-surface);
+  background: #0b1b15;
   border-radius: var(--radius-md);
   overflow: hidden;
   cursor: pointer;
@@ -550,7 +550,7 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  background: #0a1120;
+  background: #071a12;
 }
 
 .vc-tile__frame video {
@@ -566,7 +566,7 @@
   font-size: 11px;
   font-weight: 600;
   color: #fff;
-  background: rgba(15, 23, 42, 0.75);
+  background: rgba(7, 26, 18, 0.88);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   padding: 4px 10px;
@@ -632,11 +632,11 @@
   overflow: hidden;
   cursor: pointer;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
-  border: 1.5px solid rgba(16, 185, 129, 0.55);
+  border: 1.5px solid rgba(16, 185, 129, 0.7);
   transition: width var(--transition-normal), bottom var(--transition-normal), border-color var(--transition-fast);
   z-index: 15;
   touch-action: manipulation;
-  background: var(--sr-surface);
+  background: #0b1b15;
 }
 
 .vc-pip:hover {
@@ -666,7 +666,7 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #fff;
-  background: rgba(15, 23, 42, 0.8);
+  background: rgba(7, 26, 18, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(6px);
   padding: 2px 8px;
@@ -679,7 +679,7 @@
 .vc-local-grid {
   position: relative;
   overflow: hidden;
-  background: var(--sr-surface);
+  background: #0b1b15;
   border-radius: var(--radius-md);
   cursor: pointer;
   touch-action: manipulation;
