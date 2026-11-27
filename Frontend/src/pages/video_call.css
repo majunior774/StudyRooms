@@ -1078,6 +1078,70 @@
   background: linear-gradient(135deg, #4f46e5, #4338ca);
 }
 
+.vc-invite-dialog {
+  max-height: min(80vh, 640px);
+  overflow-y: auto;
+}
+
+.vc-invite__list {
+  display: grid;
+  gap: 8px;
+}
+
+.vc-invite__person {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.vc-invite__person-info {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.vc-invite__person-info strong {
+  overflow: hidden;
+  color: #f8fafc;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vc-invite__person-info span,
+.vc-invite__notice {
+  color: var(--sr-text-muted);
+  font-size: 12px;
+}
+
+.vc-invite__button {
+  min-height: 34px;
+  flex: 0 0 auto;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.vc-invite__button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.vc-invite__notice {
+  margin: 12px 0 0;
+  color: #86efac;
+}
+
 /* ════════════════════════════════════════════
    TOASTS
    ════════════════════════════════════════════ */

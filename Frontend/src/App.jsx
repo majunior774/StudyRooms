@@ -6,6 +6,7 @@ import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import PreJoinLobby from './pages/PreJoinLobby';
 import AuthPage from './pages/AuthPage';
+import { friendsRequest } from './services/friendsApi';
 // trying
 const apiBaseUrl = import.meta.env.DEV
   ? ''
@@ -1037,6 +1038,16 @@ function App() {
     setCurrentView('auth');
   }, []);
 
+  const handleInviteFriendToNewRoom = useCallback(async (inviteeId) => {
+    const newRoomId = `study-${Math.random().toString(36).slice(2, 10)}`;
+    await friendsRequest(
+      '/invitations',
+      { method: 'POST', body: JSON.stringify({ roomId: newRoomId, inviteeId }) },
+      handleSessionExpired
+    );
+    handleJoinRoom(newRoomId);
+  }, [handleJoinRoom, handleSessionExpired]);
+
   const handleLogout = useCallback(async () => {
     try {
       await fetch(`${apiBaseUrl}/api/auth/logout`, { method: 'POST', credentials: 'include' });
@@ -1106,6 +1117,7 @@ function App() {
       <LandingPage
         onCreateRoom={handleCreateRoom}
         onJoinRoom={handleJoinRoom}
+        onInviteFriendToNewRoom={handleInviteFriendToNewRoom}
         onOpenDashboard={() => setCurrentView(authUserRef.current ? 'dashboard' : 'auth')}
       />
     );
@@ -1168,6 +1180,8 @@ function App() {
       focusTimeLeft={focusTimeLeft}
       focusTimerRunning={focusTimerRunning}
       onStartFocusTimer={startFocusTimer}
+      onSessionExpired={handleSessionExpired}
+      canInviteFriends={Boolean(authUser)}
     />
   );
 }

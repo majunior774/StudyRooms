@@ -8,6 +8,7 @@ import dotenv from "dotenv";
 import StreamRouter from "./Routes/StreamRoute.js";
 import AuthRouter from "./Routes/AuthRoute.js";
 import WorkspaceRouter from "./Routes/WorkspaceRoute.js";
+import FriendsRouter from "./Routes/FriendsRoute.js";
 import registerWhiteboardHandlers from "./whiteboard.js";
 import registerYouTubeHandlers from "./youtube.js";
 
@@ -44,6 +45,7 @@ app.use("/api", (req, res, next) => {
 });
 app.use("/api/auth", AuthRouter);
 app.use("/api/workspace", WorkspaceRouter);
+app.use("/api/friends", FriendsRouter);
 
 //socket.io configration
 const server = createServer(app);

@@ -3,6 +3,7 @@ import './video_call.css';
 import Whiteboard from '../components/Whiteboard';
 import YouTubeWatchTogether from '../components/YouTubeWatchTogether';
 import StudyRoomsBrand, { StudyRoomsIcon } from '../components/StudyRoomsBrand';
+import RoomInviteDialog from '../components/RoomInviteDialog';
 
 /* ─── small helper: format elapsed call time ─── */
 function useElapsed(active) {
@@ -74,6 +75,8 @@ export default function VideoCall({
   focusTimeLeft,
   focusTimerRunning,
   onStartFocusTimer,
+  onSessionExpired,
+  canInviteFriends,
 }) {
   const [localExpanded, setLocalExpanded] = useState(false);
   const [expandedTile, setExpandedTile] = useState(null);
@@ -91,6 +94,7 @@ export default function VideoCall({
   const [whiteboardOpen, setWhiteboardOpen] = useState(false);
   const [watchTogetherOpen, setWatchTogetherOpen] = useState(false);
   const [screenShareDialogOpen, setScreenShareDialogOpen] = useState(false);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [screenShareError, setScreenShareError] = useState('');
   const [screenShareWarning, setScreenShareWarning] = useState('');
   const [screenQuality, setScreenQuality] = useState('1080');
@@ -640,6 +644,23 @@ export default function VideoCall({
                 <span>{screenShareStream ? 'Stop Sharing' : 'Share Screen'}</span>
                 {screenShareStream && <span className="vc-tools__status">Live</span>}
               </button>
+              {canInviteFriends && (
+                <button
+                  type="button"
+                  className="vc-tools__option"
+                  onClick={() => {
+                    toolsMenuRef.current.open = false;
+                    setInviteDialogOpen(true);
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M19 8v6m3-3h-6" />
+                  </svg>
+                  <span>Invite friends</span>
+                </button>
+              )}
             </div>
           </details>
 
@@ -747,6 +768,14 @@ export default function VideoCall({
             </div>
           </form>
         </div>
+      )}
+
+      {inviteDialogOpen && canInviteFriends && (
+        <RoomInviteDialog
+          roomId={roomId}
+          onClose={() => setInviteDialogOpen(false)}
+          onSessionExpired={onSessionExpired}
+        />
       )}
 
       {/* ── Toast Notifications ── */}

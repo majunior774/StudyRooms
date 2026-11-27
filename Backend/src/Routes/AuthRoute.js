@@ -45,7 +45,7 @@ function publicUser(user) {
   };
 }
 
-async function ensureUsername(user) {
+export async function ensureUsername(user) {
   if (user.username) return;
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const username = generateUsername(user.displayName);
