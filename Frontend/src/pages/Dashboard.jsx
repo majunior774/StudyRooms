@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import StudyRoomsBrand from '../components/StudyRoomsBrand';
+import FriendsPanel from '../components/FriendsPanel';
+import InvitationsPanel from '../components/InvitationsPanel';
 import PersonalWorkspace from '../components/PersonalWorkspace';
+import { friendsRequest } from '../services/friendsApi';
 
 const TIMER_MODES = [
   { id: 'focus25', label: '25m Focus', minutes: 25 },
@@ -23,6 +26,8 @@ const NAV_GROUPS = [
     items: [
       { id: 'focus', label: 'Focus timer', icon: '◷' },
       { id: 'rooms', label: 'Study rooms', icon: '▦' },
+      { id: 'friends', label: 'Friends', icon: '♧' },
+      { id: 'invitations', label: 'Invitations', icon: '✉' },
     ],
   },
 ];
@@ -49,9 +54,10 @@ export default function Dashboard({
   user,
   onCreateRoom,
   onJoinRoom,
+  onInviteFriendToNewRoom,
   onBackToHome,
   onLogout,
-  onUpdateDisplayName,
+  onUpdateProfile,
   onSessionExpired,
   timerMode,
   timeLeft,
@@ -61,6 +67,12 @@ export default function Dashboard({
   onResetTimer,
 }) {
   const [activeSection, setActiveSection] = useState('overview');
+  const [incomingFriendRequestCount, setIncomingFriendRequestCount] = useState(0);
+  const [roomInvitationCount, setRoomInvitationCount] = useState(0);
+  const [sidebarFriends, setSidebarFriends] = useState([]);
+  const [sidebarFriendsError, setSidebarFriendsError] = useState('');
+  const [sidebarCallError, setSidebarCallError] = useState('');
+  const [callingFriendId, setCallingFriendId] = useState('');
   // Join room form state
   const [roomInput, setRoomInput] = useState('');
   const [inputError, setInputError] = useState('');
@@ -68,15 +80,68 @@ export default function Dashboard({
   const [searchQuery, setSearchQuery] = useState('');
 
   // Display Name personalization
-  const [displayName, setDisplayName] = useState(user?.displayName || '');
+  const displayName = user?.displayName || '';
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(displayName);
+  const username = user?.username || '';
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
+  const [usernameDraft, setUsernameDraft] = useState(user?.username || '');
   const [profileError, setProfileError] = useState('');
 
+  const updateSidebarFriends = useCallback((nextFriends) => {
+    setSidebarFriends(nextFriends);
+    setSidebarFriendsError('');
+  }, []);
+
   useEffect(() => {
-    setDisplayName(user?.displayName || '');
-    setNameDraft(user?.displayName || '');
-  }, [user?.id, user?.displayName]);
+    let cancelled = false;
+    const refreshNotificationCount = async () => {
+      try {
+        const result = await friendsRequest('/summary', {}, onSessionExpired);
+        if (!cancelled) {
+          setIncomingFriendRequestCount(result.incomingRequestCount ?? 0);
+          setRoomInvitationCount(result.roomInvitationCount ?? 0);
+        }
+      } catch (error) {
+        if (!cancelled) console.error('Could not load friends notifications:', error);
+      }
+    };
+
+    refreshNotificationCount();
+    const intervalId = window.setInterval(refreshNotificationCount, 30000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [onSessionExpired, user?.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    friendsRequest('', {}, onSessionExpired)
+      .then((result) => {
+        if (!cancelled) updateSidebarFriends(result.friends ?? []);
+      })
+      .catch((loadError) => {
+        if (!cancelled) {
+          setSidebarFriendsError(loadError.message);
+          console.error('Could not load sidebar friends:', loadError);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [onSessionExpired, updateSidebarFriends, user?.id]);
+
+  const callFriendFromSidebar = async (friend) => {
+    setCallingFriendId(friend.id);
+    setSidebarCallError('');
+    try {
+      await onInviteFriendToNewRoom(friend.id);
+    } catch (error) {
+      setSidebarCallError(error.message);
+      setCallingFriendId('');
+    }
+  };
 
   // Recent Rooms (Local persistence only)
   const [recentRooms, setRecentRooms] = useState(() => {
@@ -111,13 +176,29 @@ export default function Dashboard({
       return;
     }
     try {
-      const updated = await onUpdateDisplayName(clean);
-      setDisplayName(updated.displayName);
+      const updated = await onUpdateProfile({ displayName: clean });
       setNameDraft(updated.displayName);
       setProfileError('');
       setIsEditingName(false);
     } catch (error) {
       setProfileError(error.message || 'Could not update your display name.');
+    }
+  };
+
+  const handleSaveUsername = async (e) => {
+    e?.preventDefault();
+    const clean = usernameDraft.trim().toLowerCase();
+    if (!/^[a-z0-9][a-z0-9_-]{2,31}$/.test(clean)) {
+      setProfileError('Use 3–32 letters, numbers, underscores, or hyphens; start with a letter or number.');
+      return;
+    }
+    try {
+      const updated = await onUpdateProfile({ username: clean });
+      setUsernameDraft(updated.username);
+      setProfileError('');
+      setIsEditingUsername(false);
+    } catch (error) {
+      setProfileError(error.message || 'Could not update your username.');
     }
   };
 
@@ -225,16 +306,59 @@ export default function Dashboard({
               <p className="sr-dashboard__nav-label">{group.label}</p>
               <nav aria-label={`${group.label} navigation`}>
                 {group.items.map((item) => (
+                  <Fragment key={item.id}>
                   <button
-                    key={item.id}
                     type="button"
                     className={`sr-dashboard__nav-item ${activeSection === item.id ? 'is-active' : ''}`}
                     aria-current={activeSection === item.id ? 'page' : undefined}
+                    aria-label={
+                      item.id === 'friends' && incomingFriendRequestCount > 0
+                        ? `Friends, ${incomingFriendRequestCount} incoming friend requests`
+                        : item.id === 'invitations' && roomInvitationCount > 0
+                          ? `Invitations, ${roomInvitationCount} pending room invitations`
+                          : item.label
+                    }
                     onClick={() => setActiveSection(item.id)}
                   >
                     <span className="sr-dashboard__nav-icon" aria-hidden="true">{item.icon}</span>
                     <span>{item.label}</span>
+                    {((item.id === 'friends' && incomingFriendRequestCount > 0)
+                      || (item.id === 'invitations' && roomInvitationCount > 0)) && (
+                      <span className="sr-dashboard__friend-notification" aria-hidden="true" />
+                    )}
                   </button>
+                  {item.id === 'friends' && (sidebarFriends.length > 0 || sidebarFriendsError) && (
+                    <div className="sr-dashboard__sidebar-friends" role="group" aria-label="Your friends">
+                      <p className="sr-dashboard__sidebar-friends-title">Your friends</p>
+                      {sidebarFriendsError && (
+                        <p className="sr-dashboard__sidebar-friends-error" role="alert">
+                          {sidebarFriendsError}
+                        </p>
+                      )}
+                      {sidebarFriends.map((friend) => (
+                        <div className="sr-dashboard__sidebar-friend" key={friend.id}>
+                          <span className="sr-dashboard__sidebar-friend-name" title={friend.displayName}>
+                            {friend.displayName || `@${friend.username}`}
+                          </span>
+                          <button
+                            type="button"
+                            className="sr-dashboard__sidebar-call"
+                            disabled={Boolean(callingFriendId) || !onInviteFriendToNewRoom}
+                            onClick={() => callFriendFromSidebar(friend)}
+                            aria-label={`Call ${friend.displayName || friend.username} and invite them to a new room`}
+                          >
+                            {callingFriendId === friend.id ? 'Calling…' : 'Call'}
+                          </button>
+                        </div>
+                      ))}
+                      {sidebarCallError && (
+                        <p className="sr-dashboard__sidebar-friends-error" role="alert">
+                          {sidebarCallError}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  </Fragment>
                 ))}
               </nav>
             </div>
@@ -308,6 +432,64 @@ export default function Dashboard({
             )}
           </div>
 
+          <div className="relative">
+            {isEditingUsername ? (
+              <form onSubmit={handleSaveUsername} className="flex items-center gap-1.5">
+                <span className="text-xs text-slate-400">@</span>
+                <input
+                  type="text"
+                  value={usernameDraft}
+                  onChange={(e) => setUsernameDraft(e.target.value)}
+                  placeholder="username"
+                  autoComplete="username"
+                  maxLength={32}
+                  autoFocus
+                  aria-label="Username"
+                  className="px-2.5 py-1 text-xs rounded-lg bg-slate-800 border border-indigo-500/50 text-white focus:outline-none w-28 sm:w-36"
+                />
+                <button
+                  type="submit"
+                  className="px-2 py-1 text-[11px] font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-all cursor-pointer"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingUsername(false)}
+                  className="px-1.5 py-1 text-[11px] text-slate-400 hover:text-white transition-all cursor-pointer"
+                  aria-label="Cancel username edit"
+                >
+                  ✕
+                </button>
+              </form>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setUsernameDraft(username);
+                  setProfileError('');
+                  setIsEditingUsername(true);
+                }}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-white/10 text-xs text-slate-300 transition-all cursor-pointer group"
+                title="Edit your unique username"
+                aria-label={`Edit username ${username}`}
+              >
+                <span className="max-w-[120px] truncate font-medium">@{username}</span>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="text-slate-400 group-hover:text-white transition-colors"
+                >
+                  <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </svg>
+              </button>
+            )}
+          </div>
+
           <button
             type="button"
             onClick={onBackToHome}
@@ -350,31 +532,45 @@ export default function Dashboard({
                     ? 'Your study notes, gathered in one place.'
                     : activeSection === 'focus'
                       ? 'Set a pace, focus on one thing at a time, and take breaks.'
+                      : activeSection === 'friends'
+                        ? 'Find study partners by username and manage your friend requests.'
+                        : activeSection === 'invitations'
+                          ? 'Review room invitations from your friends.'
                       : 'Create a study room or rejoin one of your recent sessions.'}
             </p>
           </div>
 
           {/* Quick Stats Pills */}
           <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
-            <div className="px-3.5 py-2 rounded-xl bg-slate-900/80 border border-white/10 backdrop-blur-sm flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setActiveSection('rooms')}
+              aria-label="Open recent study rooms"
+              className="sr-dashboard__quick-stat"
+            >
               <span className="w-2 h-2 rounded-full bg-indigo-400" />
-              <div className="text-left">
-                <p className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">
+              <span className="sr-dashboard__quick-stat-copy">
+                <span className="sr-dashboard__quick-stat-label">
                   Recent Rooms
-                </p>
-                <p className="text-xs font-bold text-white">{recentRooms.length} stored</p>
-              </div>
-            </div>
+                </span>
+                <span className="sr-dashboard__quick-stat-value">{recentRooms.length} stored</span>
+              </span>
+            </button>
 
-            <div className="px-3.5 py-2 rounded-xl bg-slate-900/80 border border-white/10 backdrop-blur-sm flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setActiveSection('focus')}
+              aria-label="Open focus timer"
+              className="sr-dashboard__quick-stat"
+            >
               <span className={`w-2 h-2 rounded-full ${timerRunning ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
-              <div className="text-left">
-                <p className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">
+              <span className="sr-dashboard__quick-stat-copy">
+                <span className="sr-dashboard__quick-stat-label">
                   Focus Clock
-                </p>
-                <p className="text-xs font-bold text-white">{timerRunning ? 'Running' : 'Standby'}</p>
-              </div>
-            </div>
+                </span>
+                <span className="sr-dashboard__quick-stat-value">{timerRunning ? 'Running' : 'Standby'}</span>
+              </span>
+            </button>
           </div>
         </div>
 
@@ -385,6 +581,23 @@ export default function Dashboard({
           onNavigate={setActiveSection}
           onSessionExpired={onSessionExpired}
         />
+
+        {activeSection === 'friends' && (
+          <FriendsPanel
+            onSessionExpired={onSessionExpired}
+            onIncomingRequestsChange={setIncomingFriendRequestCount}
+            onFriendsChange={updateSidebarFriends}
+            onInviteFriendToNewRoom={onInviteFriendToNewRoom}
+          />
+        )}
+
+        {activeSection === 'invitations' && (
+          <InvitationsPanel
+            onSessionExpired={onSessionExpired}
+            onJoinRoom={onJoinRoom}
+            onPendingInvitationsChange={setRoomInvitationCount}
+          />
+        )}
 
         {/* ── Action Grid: Launch Room + Join Room ── */}
         {activeSection === 'rooms' && <div className="sr-dashboard__action-grid grid grid-cols-1 md:grid-cols-2 gap-5">

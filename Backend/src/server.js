@@ -8,8 +8,10 @@ import dotenv from "dotenv";
 import StreamRouter from "./Routes/StreamRoute.js";
 import AuthRouter from "./Routes/AuthRoute.js";
 import WorkspaceRouter from "./Routes/WorkspaceRoute.js";
+import FriendsRouter from "./Routes/FriendsRoute.js";
 import registerWhiteboardHandlers from "./whiteboard.js";
 import registerYouTubeHandlers from "./youtube.js";
+import registerChatHandlers from "./chat.js";
 
 dotenv.config();
 
@@ -44,6 +46,7 @@ app.use("/api", (req, res, next) => {
 });
 app.use("/api/auth", AuthRouter);
 app.use("/api/workspace", WorkspaceRouter);
+app.use("/api/friends", FriendsRouter);
 
 //socket.io configration
 const server = createServer(app);
@@ -60,14 +63,23 @@ io.on("connection",(socket)=>{
     console.log(`Connected: ${socket.id}`);
     registerWhiteboardHandlers(io, socket);
     registerYouTubeHandlers(io, socket);
+    registerChatHandlers(io, socket);
 
-    socket.on("join-room",(roomId)=>{
+    socket.on("join-room",(roomId, participant = {})=>{
         console.log(`user wants to join ${roomId}`);
+        const displayName = typeof participant?.displayName === "string"
+            ? participant.displayName.trim().slice(0, 80)
+            : "";
+        socket.data.displayName = displayName || "Guest";
 
         // Who is already in this room?
         const existingUsers = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
         // Tell ONLY the new user
         socket.emit("existing-users", existingUsers);
+        socket.emit("room-participants", existingUsers.map((userId) => ({
+            userId,
+            displayName: io.sockets.sockets.get(userId)?.data.displayName || "Guest",
+        })));
 
         socket.join(roomId);
 
@@ -82,6 +94,10 @@ io.on("connection",(socket)=>{
 
         //telling everyone
         socket.to(roomId).emit("user-joined",socket.id);
+        socket.to(roomId).emit("participant-joined", {
+            userId: socket.id,
+            displayName: socket.data.displayName,
+        });
 
         console.log(`user:${socket.id} is in room ${roomId}`);
     })

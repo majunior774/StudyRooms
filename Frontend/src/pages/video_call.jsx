@@ -3,6 +3,10 @@ import './video_call.css';
 import Whiteboard from '../components/Whiteboard';
 import YouTubeWatchTogether from '../components/YouTubeWatchTogether';
 import StudyRoomsBrand, { StudyRoomsIcon } from '../components/StudyRoomsBrand';
+import RoomInviteDialog from '../components/RoomInviteDialog';
+import RoomChatPanel from '../components/RoomChatPanel';
+
+const MAX_CHAT_MESSAGES = 100;
 
 /* ─── small helper: format elapsed call time ─── */
 function useElapsed(active) {
@@ -21,7 +25,7 @@ function useElapsed(active) {
 }
 
 /* ─── remote video tile ─── */
-function RemoteTile({ userId, stream, source, isExpanded, onPointerUp, onKeyDown }) {
+function RemoteTile({ displayName, stream, source, isExpanded, onPointerUp, onKeyDown }) {
   const ref = useRef(null);
   useEffect(() => {
     if (ref.current && ref.current.srcObject !== stream) {
@@ -30,15 +34,15 @@ function RemoteTile({ userId, stream, source, isExpanded, onPointerUp, onKeyDown
   }, [stream]);
 
   const label = source === 'screen'
-    ? `Screen · ${userId.slice(0, 6)}`
-    : `Student · ${userId.slice(0, 6)}`;
+    ? `Screen · ${displayName}`
+    : displayName;
 
   return (
     <div
       className={`vc-tile ${source === 'screen' ? 'vc-tile--screen' : ''} ${isExpanded ? 'vc-tile--expanded' : ''}`}
       role="button"
       tabIndex={0}
-      aria-label={`${isExpanded ? 'Restore' : 'Expand'} ${source === 'screen' ? 'screen share' : 'video'} from ${userId.slice(0, 8)}`}
+      aria-label={`${isExpanded ? 'Restore' : 'Expand'} ${source === 'screen' ? 'screen share' : 'video'} from ${displayName}`}
       aria-pressed={isExpanded}
       onPointerUp={onPointerUp}
       onKeyDown={onKeyDown}
@@ -59,6 +63,7 @@ function RemoteTile({ userId, stream, source, isExpanded, onPointerUp, onKeyDown
 export default function VideoCall({
   localVideoRef,
   remoteStreams,
+  participantNames,
   cameraFacingMode,
   cameraReady,
   cameraSwitching,
@@ -73,6 +78,8 @@ export default function VideoCall({
   focusTimeLeft,
   focusTimerRunning,
   onStartFocusTimer,
+  onSessionExpired,
+  canInviteFriends,
 }) {
   const [localExpanded, setLocalExpanded] = useState(false);
   const [expandedTile, setExpandedTile] = useState(null);
@@ -90,6 +97,10 @@ export default function VideoCall({
   const [whiteboardOpen, setWhiteboardOpen] = useState(false);
   const [watchTogetherOpen, setWatchTogetherOpen] = useState(false);
   const [screenShareDialogOpen, setScreenShareDialogOpen] = useState(false);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatError, setChatError] = useState('');
   const [screenShareError, setScreenShareError] = useState('');
   const [screenShareWarning, setScreenShareWarning] = useState('');
   const [screenQuality, setScreenQuality] = useState('1080');
@@ -116,6 +127,35 @@ export default function VideoCall({
     updateFullscreen();
     return () => document.removeEventListener('fullscreenchange', updateFullscreen);
   }, []);
+
+  useEffect(() => {
+    if (!socket) return undefined;
+
+    const handleChatMessage = (message) => {
+      if (
+        message?.roomId !== roomId ||
+        typeof message.id !== 'string' ||
+        typeof message.senderId !== 'string' ||
+        typeof message.senderName !== 'string' ||
+        typeof message.text !== 'string' ||
+        typeof message.timestamp !== 'string'
+      ) {
+        return;
+      }
+      setChatMessages((previous) => [...previous, message].slice(-MAX_CHAT_MESSAGES));
+      setChatError('');
+    };
+    const handleChatError = (payload = {}) => {
+      setChatError(payload.message || 'Could not send your message.');
+    };
+
+    socket.on('chat:message', handleChatMessage);
+    socket.on('chat:error', handleChatError);
+    return () => {
+      socket.off('chat:message', handleChatMessage);
+      socket.off('chat:error', handleChatError);
+    };
+  }, [roomId, socket]);
 
   /* ── screen share preview ── */
   useEffect(() => {
@@ -436,10 +476,11 @@ export default function VideoCall({
             <div className={`vc-grid ${gridClass}`} style={adaptiveTileStyle}>
               {remoteStreams.map(({ userId, stream, source }) => {
                 const tileId = `remote:${userId}:${stream.id}`;
+                const displayName = participantNames[userId] || 'Student';
                 return (
                   <RemoteTile
                     key={tileId}
-                    userId={userId}
+                    displayName={displayName}
                     stream={stream}
                     source={source}
                     isExpanded={expandedTile === tileId}
@@ -579,7 +620,7 @@ export default function VideoCall({
                 <circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" />
                 <circle cx="5" cy="19" r="2" /><circle cx="12" cy="19" r="2" /><circle cx="19" cy="19" r="2" />
               </svg>
-              {(whiteboardOpen || watchTogetherOpen || screenShareStream) && <span className="vc-tools__dot" />}
+              {(whiteboardOpen || watchTogetherOpen || screenShareStream || chatOpen) && <span className="vc-tools__dot" />}
               <span className="vc-btn__label">Tools</span>
             </summary>
             <div className="vc-tools__dropdown" role="group" aria-label="Study tools">
@@ -624,6 +665,21 @@ export default function VideoCall({
               </button>
               <button
                 type="button"
+                className={`vc-tools__option ${chatOpen ? 'vc-tools__option--active' : ''}`}
+                onClick={() => {
+                  toolsMenuRef.current.open = false;
+                  setChatOpen((open) => !open);
+                }}
+                aria-pressed={chatOpen}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z" />
+                </svg>
+                <span>Room Chat</span>
+                {chatOpen && <span className="vc-tools__status">Open</span>}
+              </button>
+              <button
+                type="button"
                 className={`vc-tools__option ${screenShareStream ? 'vc-tools__option--active' : ''}`}
                 onClick={() => {
                   toolsMenuRef.current.open = false;
@@ -638,6 +694,23 @@ export default function VideoCall({
                 <span>{screenShareStream ? 'Stop Sharing' : 'Share Screen'}</span>
                 {screenShareStream && <span className="vc-tools__status">Live</span>}
               </button>
+              {canInviteFriends && (
+                <button
+                  type="button"
+                  className="vc-tools__option"
+                  onClick={() => {
+                    toolsMenuRef.current.open = false;
+                    setInviteDialogOpen(true);
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M19 8v6m3-3h-6" />
+                  </svg>
+                  <span>Invite friends</span>
+                </button>
+              )}
             </div>
           </details>
 
@@ -745,6 +818,26 @@ export default function VideoCall({
             </div>
           </form>
         </div>
+      )}
+
+      {inviteDialogOpen && canInviteFriends && (
+        <RoomInviteDialog
+          roomId={roomId}
+          onClose={() => setInviteDialogOpen(false)}
+          onSessionExpired={onSessionExpired}
+        />
+      )}
+
+      {chatOpen && (
+        <RoomChatPanel
+          socket={socket}
+          roomId={roomId}
+          messages={chatMessages}
+          error={chatError}
+          onClearError={() => setChatError('')}
+          onError={setChatError}
+          onClose={() => setChatOpen(false)}
+        />
       )}
 
       {/* ── Toast Notifications ── */}

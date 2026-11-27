@@ -18,9 +18,22 @@ const noteSchema = new mongoose.Schema({
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true, maxlength: 254 },
   displayName: { type: String, required: true, trim: true, maxlength: 80 },
+  username: {
+    type: String,
+    lowercase: true,
+    trim: true,
+    minlength: 3,
+    maxlength: 32,
+    match: /^[a-z0-9][a-z0-9_-]{2,31}$/,
+  },
   passwordHash: { type: String, required: true, select: false },
   tasks: { type: [taskSchema], default: [] },
   notes: { type: [noteSchema], default: [] },
 }, { timestamps: true });
+
+userSchema.index(
+  { username: 1 },
+  { unique: true, partialFilterExpression: { username: { $type: 'string' } } }
+);
 
 export default mongoose.models.User || mongoose.model('User', userSchema);

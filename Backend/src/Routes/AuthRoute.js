@@ -8,6 +8,7 @@ import {
 import { promisify } from 'node:util';
 import User from '../models/User.js';
 import UserSession from '../models/UserSession.js';
+import { generateUsername, isValidUsername, normalizeUsername } from '../utils/username.js';
 
 const router = Router();
 const scrypt = promisify(scryptCallback);
@@ -40,7 +41,32 @@ function publicUser(user) {
     id: user._id.toString(),
     email: user.email,
     displayName: user.displayName,
+    username: user.username,
   };
+}
+
+export async function ensureUsername(user) {
+  if (user.username) return;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const username = generateUsername(user.displayName);
+    try {
+      const result = await User.updateOne(
+        { _id: user._id, username: { $exists: false } },
+        { $set: { username } }
+      );
+      if (result.matchedCount === 0) {
+        const currentUser = await User.findById(user._id).select('username');
+        if (!currentUser?.username) throw new Error('Account no longer exists.');
+        user.username = currentUser.username;
+        return;
+      }
+      user.username = username;
+      return;
+    } catch (error) {
+      if (error?.code !== 11000 || !error.keyPattern?.username) throw error;
+    }
+  }
+  throw new Error('Could not generate an available username.');
 }
 
 async function hashPassword(password) {
@@ -113,16 +139,34 @@ router.post('/register', async (req, res) => {
   }
 
   try {
-    const user = await User.create({
+    const user = new User({
       displayName,
       email,
       passwordHash: await hashPassword(password),
     });
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      user.username = generateUsername(displayName);
+      try {
+        await user.save();
+        break;
+      } catch (error) {
+        if (
+          error?.code !== 11000 ||
+          !error.keyPattern?.username ||
+          attempt === 4
+        ) {
+          throw error;
+        }
+      }
+    }
     await issueSession(user, res);
     return res.status(201).json({ user: publicUser(user) });
   } catch (error) {
-    if (error?.code === 11000) {
+    if (error?.code === 11000 && error.keyPattern?.email) {
       return res.status(409).json({ error: 'An account with that email already exists.' });
+    }
+    if (error?.code === 11000 && error.keyPattern?.username) {
+      return res.status(409).json({ error: 'Could not generate an available username. Please try again.' });
     }
     throw error;
   }
@@ -142,6 +186,7 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Email or password is incorrect.' });
   }
 
+  await ensureUsername(user);
   await issueSession(user, res);
   return res.json({ user: publicUser(user) });
 });
@@ -154,21 +199,45 @@ router.post('/logout', async (req, res) => {
 });
 
 router.get('/me', requireAuth, async (req, res) => {
-  const user = await User.findById(req.userId).select('email displayName');
+  const user = await User.findById(req.userId).select('email displayName username');
   if (!user) return res.status(401).json({ error: 'Account no longer exists.' });
+  await ensureUsername(user);
   return res.json({ user: publicUser(user) });
 });
 
 router.patch('/me', requireAuth, async (req, res) => {
-  const displayName = typeof req.body?.displayName === 'string' ? req.body.displayName.trim() : '';
-  if (!displayName || displayName.length > 80) {
-    return res.status(400).json({ error: 'Enter a display name up to 80 characters.' });
+  const body = req.body ?? {};
+  const updates = {};
+  if (Object.hasOwn(body, 'displayName')) {
+    const displayName = typeof body.displayName === 'string' ? body.displayName.trim() : '';
+    if (!displayName || displayName.length > 80) {
+      return res.status(400).json({ error: 'Enter a display name up to 80 characters.' });
+    }
+    updates.displayName = displayName;
   }
-  const user = await User.findByIdAndUpdate(
-    req.userId,
-    { displayName },
-    { new: true, runValidators: true, select: 'email displayName' }
-  );
+  if (Object.hasOwn(body, 'username')) {
+    const username = normalizeUsername(body.username);
+    if (!isValidUsername(username)) {
+      return res.status(400).json({ error: 'Use a username with 3–32 letters, numbers, underscores, or hyphens.' });
+    }
+    updates.username = username;
+  }
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: 'Provide a display name or username to update.' });
+  }
+  let user;
+  try {
+    user = await User.findByIdAndUpdate(
+      req.userId,
+      updates,
+      { new: true, runValidators: true, select: 'email displayName username' }
+    );
+  } catch (error) {
+    if (error?.code === 11000 && updates.username) {
+      return res.status(409).json({ error: 'That username is already taken.' });
+    }
+    throw error;
+  }
   if (!user) return res.status(401).json({ error: 'Account no longer exists.' });
   return res.json({ user: publicUser(user) });
 });

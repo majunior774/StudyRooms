@@ -512,7 +512,7 @@
 
 .vc-tile {
   position: relative;
-  background: var(--sr-surface);
+  background: #0b1b15;
   border-radius: var(--radius-md);
   overflow: hidden;
   cursor: pointer;
@@ -550,7 +550,7 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  background: #0a1120;
+  background: #071a12;
 }
 
 .vc-tile__frame video {
@@ -566,7 +566,7 @@
   font-size: 11px;
   font-weight: 600;
   color: #fff;
-  background: rgba(15, 23, 42, 0.75);
+  background: rgba(7, 26, 18, 0.88);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   padding: 4px 10px;
@@ -632,11 +632,11 @@
   overflow: hidden;
   cursor: pointer;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
-  border: 1.5px solid rgba(16, 185, 129, 0.55);
+  border: 1.5px solid rgba(16, 185, 129, 0.7);
   transition: width var(--transition-normal), bottom var(--transition-normal), border-color var(--transition-fast);
   z-index: 15;
   touch-action: manipulation;
-  background: var(--sr-surface);
+  background: #0b1b15;
 }
 
 .vc-pip:hover {
@@ -666,7 +666,7 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #fff;
-  background: rgba(15, 23, 42, 0.8);
+  background: rgba(7, 26, 18, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(6px);
   padding: 2px 8px;
@@ -679,7 +679,7 @@
 .vc-local-grid {
   position: relative;
   overflow: hidden;
-  background: var(--sr-surface);
+  background: #0b1b15;
   border-radius: var(--radius-md);
   cursor: pointer;
   touch-action: manipulation;
@@ -921,6 +921,193 @@
   font-weight: 600;
 }
 
+.vc-chat {
+  position: fixed;
+  z-index: 40;
+  top: 64px;
+  right: 20px;
+  bottom: 96px;
+  display: flex;
+  width: min(360px, calc(100vw - 32px));
+  min-height: 220px;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-lg);
+  background: rgba(15, 23, 42, 0.97);
+  color: var(--sr-text);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+}
+
+.vc-chat__header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.vc-chat__header h2 {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.vc-chat__header p {
+  margin-top: 4px;
+  color: var(--sr-text-muted);
+  font-size: 11px;
+}
+
+.vc-chat__close {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--sr-text-muted);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.vc-chat__close:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.vc-chat__messages {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  padding: 14px;
+  overscroll-behavior: contain;
+}
+
+.vc-chat__empty {
+  margin: auto;
+  color: var(--sr-text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.vc-chat__message {
+  max-width: 90%;
+  align-self: flex-start;
+  padding: 9px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px 12px 12px 3px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.vc-chat__message--own {
+  align-self: flex-end;
+  border-color: rgba(6, 182, 212, 0.2);
+  border-radius: 12px 12px 3px 12px;
+  background: rgba(6, 182, 212, 0.12);
+}
+
+.vc-chat__message-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.vc-chat__message-meta strong {
+  overflow: hidden;
+  color: #e2e8f0;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vc-chat__message-meta time {
+  flex: 0 0 auto;
+  color: var(--sr-text-muted);
+  font-size: 10px;
+}
+
+.vc-chat__message > p {
+  margin-top: 4px;
+  color: #f1f5f9;
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.vc-chat__error {
+  margin: 0 14px 8px;
+  color: #fca5a5;
+  font-size: 11px;
+}
+
+.vc-chat__form {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.vc-chat__form input {
+  width: 0;
+  min-width: 0;
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-sm);
+  outline: 0;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+}
+
+.vc-chat__form input::placeholder {
+  color: var(--sr-text-muted);
+}
+
+.vc-chat__form input:focus-visible {
+  border-color: var(--sr-secondary);
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.16);
+}
+
+.vc-chat__form button {
+  min-width: 58px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--sr-secondary);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.vc-chat__form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media (max-width: 480px) {
+  .vc-chat {
+    top: 58px;
+    right: 10px;
+    bottom: 84px;
+    width: calc(100vw - 20px);
+  }
+}
+
 /* ════════════════════════════════════════════
    SCREEN SHARE SETTINGS DIALOG
    ════════════════════════════════════════════ */
@@ -1076,6 +1263,70 @@
 
 .vc-dialog__submit:hover {
   background: linear-gradient(135deg, #4f46e5, #4338ca);
+}
+
+.vc-invite-dialog {
+  max-height: min(80vh, 640px);
+  overflow-y: auto;
+}
+
+.vc-invite__list {
+  display: grid;
+  gap: 8px;
+}
+
+.vc-invite__person {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.vc-invite__person-info {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.vc-invite__person-info strong {
+  overflow: hidden;
+  color: #f8fafc;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vc-invite__person-info span,
+.vc-invite__notice {
+  color: var(--sr-text-muted);
+  font-size: 12px;
+}
+
+.vc-invite__button {
+  min-height: 34px;
+  flex: 0 0 auto;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.vc-invite__button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.vc-invite__notice {
+  margin: 12px 0 0;
+  color: #86efac;
 }
 
 /* ════════════════════════════════════════════
