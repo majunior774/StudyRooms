@@ -916,7 +916,10 @@ export default function Dashboard({
 
       {/* ── Footer ── */}
       <footer className="sr-dashboard__footer relative z-10 w-full border-t border-white/[0.05] py-5 px-6 text-center text-xs text-slate-400">
-        StudyRooms Hub • Client-managed session history • Connect. Collaborate. Learn.
+        <span>StudyRooms Hub • Client-managed session history • Connect. Collaborate. Learn.</span>
+        <small className="sr-dashboard__credit">
+          Made by Sumit Kumar &amp; Aayush Aryan · Minor project · Under the supervision of Rekha Ma’am
+        </small>
       </footer>
         </div>
       </div>
