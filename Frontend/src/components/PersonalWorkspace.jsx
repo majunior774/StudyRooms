@@ -77,15 +77,18 @@ export default function PersonalWorkspace({ displayName, section = 'overview', h
     if (saving) return;
     const task = tasks.find((item) => item.id === id);
     if (!task) return;
+    const updatedTask = { ...task, done: !task.done };
+    setTasks((current) => current.map((item) => item.id === id ? updatedTask : item));
     setSaving(true);
     try {
-      const { task: updated } = await workspaceRequest(`/tasks/${encodeURIComponent(id)}`, {
+      const { task: savedTask } = await workspaceRequest(`/tasks/${encodeURIComponent(id)}`, {
         method: 'PATCH',
-        body: JSON.stringify({ done: !task.done }),
+        body: JSON.stringify({ done: updatedTask.done }),
       }, onSessionExpired);
-      setTasks((current) => current.map((item) => item.id === id ? updated : item));
+      setTasks((current) => current.map((item) => item.id === id ? savedTask : item));
       setError('');
     } catch (saveError) {
+      setTasks((current) => current.map((item) => item.id === id ? task : item));
       setError(saveError.message);
     } finally {
       setSaving(false);
