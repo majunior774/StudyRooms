@@ -183,7 +183,21 @@ server.listen(process.env.PORT,"0.0.0.0", () => {
     
 });
 
-mongoose.connect(process.env.MONGO_URI)
+const reportedMongoHeartbeatFailures = new Set();
+const mongoConnection = mongoose.connect(process.env.MONGO_URI);
+mongoose.connection.getClient().on("serverHeartbeatFailed", ({ connectionId, failure }) => {
+    const address = connectionId?.toString();
+    if (address && reportedMongoHeartbeatFailures.has(address)) return;
+    if (address) reportedMongoHeartbeatFailures.add(address);
+    console.error("MongoDB heartbeat failed:", {
+        address,
+        name: failure?.name,
+        code: failure?.code,
+        message: failure?.message,
+    });
+});
+
+mongoConnection
     .then(() => {
         console.log("MongoDB connected");
         
