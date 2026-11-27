@@ -514,6 +514,83 @@
   padding-inline: 12px;
 }
 
+.sr-dashboard__username-control { position: relative; }
+.sr-dashboard__username-trigger {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 6px;
+  border: 1px solid #d7e2da;
+  border-radius: 12px;
+  background: #f0f4ef;
+  color: #3d574b;
+  transition: border-color .16s ease, background .16s ease, transform .16s ease;
+}
+.sr-dashboard__username-trigger:hover {
+  border-color: #b8cbbd;
+  background: #eaf1eb;
+  transform: translateY(-1px);
+}
+.sr-dashboard__username-at {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #d3e0d5;
+  border-radius: 8px;
+  background: #fffefa;
+  color: #477362;
+  font-size: 13px;
+  font-weight: 700;
+}
+.sr-dashboard__username-label {
+  max-width: 106px;
+  overflow: hidden;
+  color: #354b40;
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sr-dashboard__username-pencil { flex: 0 0 auto; color: #82948a; transition: color .16s ease; }
+.sr-dashboard__username-trigger:hover .sr-dashboard__username-pencil { color: #3f715e; }
+.sr-dashboard__username-edit {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border: 1px solid #cbd9cf;
+  border-radius: 11px;
+  background: #f3f6f1;
+}
+.sr-dashboard__username-edit .sr-dashboard__username-at { width: 25px; height: 25px; }
+.sr-dashboard__username-input {
+  width: 100px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid #d7dfd7;
+  border-radius: 7px;
+  background: #fffefa;
+  color: #34453c;
+  font-size: 11px;
+}
+.sr-dashboard__username-save,
+.sr-dashboard__username-cancel {
+  min-height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 7px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.sr-dashboard__username-save { background: var(--sr-green); color: white; }
+.sr-dashboard__username-cancel { background: #e7ece6; color: #637268; }
+.sr-dashboard__username-save:hover { background: var(--sr-green-hover); }
+.sr-dashboard__username-cancel:hover { background: #dce5dc; }
+
 .sr-dashboard__header > div:last-child > button {
   padding-inline: 16px !important;
 }
@@ -857,6 +934,12 @@
     padding-inline: 10px !important;
     font-size: 12px !important;
   }
+
+  .sr-dashboard__username-trigger { min-height: 36px; gap: 6px; padding-right: 8px; }
+  .sr-dashboard__username-at { width: 23px; height: 23px; }
+  .sr-dashboard__username-label { max-width: 70px; font-size: 11px; }
+  .sr-dashboard__username-pencil { width: 10px; height: 10px; }
+  .sr-dashboard__username-input { width: 72px; }
 
   .sr-dashboard__main {
     gap: 24px;
