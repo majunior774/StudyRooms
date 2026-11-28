@@ -9,13 +9,17 @@ export default function PreJoinLobby({
   cameraSwitching,
   cameraError,
   cameraFacingMode,
+  micEnabled,
+  cameraEnabled,
+  onToggleMic,
+  onToggleCamera,
   onSwitchCamera,
   onJoinRoom,
   onCancel,
 }) {
-  const [micOn, setMicOn] = useState(true);
-  const [camOn, setCamOn] = useState(true);
   const [copied, setCopied] = useState(false);
+  const micOn = micEnabled;
+  const camOn = cameraEnabled;
 
   const [displayName, setDisplayName] = useState(() => {
     return accountDisplayName || localStorage.getItem('sr_display_name') || '';
@@ -24,26 +28,6 @@ export default function PreJoinLobby({
   useEffect(() => {
     if (accountDisplayName) setDisplayName(accountDisplayName);
   }, [accountDisplayName]);
-
-  const toggleMic = () => {
-    const stream = localVideoRef.current?.srcObject;
-    if (stream) {
-      stream.getAudioTracks().forEach((t) => {
-        t.enabled = !t.enabled;
-      });
-    }
-    setMicOn((prev) => !prev);
-  };
-
-  const toggleCam = () => {
-    const stream = localVideoRef.current?.srcObject;
-    if (stream) {
-      stream.getVideoTracks().forEach((t) => {
-        t.enabled = !t.enabled;
-      });
-    }
-    setCamOn((prev) => !prev);
-  };
 
   const handleCopyLink = () => {
     const url = `${window.location.origin}/?room=${encodeURIComponent(roomId)}`;
@@ -150,7 +134,7 @@ export default function PreJoinLobby({
               {/* Mic Toggle Button */}
               <button
                 type="button"
-                onClick={toggleMic}
+                onClick={onToggleMic}
                 className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
                   micOn
                     ? 'bg-slate-800/90 text-slate-100 hover:bg-slate-700/90 border border-white/10 hover:border-white/20 hover:scale-105 active:scale-95'
@@ -177,7 +161,7 @@ export default function PreJoinLobby({
               {/* Camera Toggle Button */}
               <button
                 type="button"
-                onClick={toggleCam}
+                onClick={onToggleCamera}
                 className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
                   camOn
                     ? 'bg-slate-800/90 text-slate-100 hover:bg-slate-700/90 border border-white/10 hover:border-white/20 hover:scale-105 active:scale-95'

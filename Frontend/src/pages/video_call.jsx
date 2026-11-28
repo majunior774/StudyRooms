@@ -77,6 +77,10 @@ export default function VideoCall({
   remoteStreams,
   participantNames,
   roomTimer,
+  micEnabled,
+  cameraEnabled,
+  onToggleMic,
+  onToggleCamera,
   cameraFacingMode,
   cameraReady,
   cameraSwitching,
@@ -97,13 +101,8 @@ export default function VideoCall({
 }) {
   const [localExpanded, setLocalExpanded] = useState(false);
   const [expandedTile, setExpandedTile] = useState(null);
-  const [micOn, setMicOn] = useState(true);
-  const [camOn, setCamOn] = useState(true);
-
-  useEffect(() => {
-    const videoTrack = localVideoRef.current?.srcObject?.getVideoTracks()[0];
-    if (videoTrack) setCamOn(videoTrack.enabled);
-  }, [localVideoRef]);
+  const micOn = micEnabled;
+  const camOn = cameraEnabled;
   const [isFullscreen, setIsFullscreen] = useState(() => Boolean(document.fullscreenElement));
   const [focusModeActive, setFocusModeActive] = useState(false);
   const [fullscreenError, setFullscreenError] = useState('');
@@ -367,20 +366,6 @@ export default function VideoCall({
   }, [scheduleHideControls]);
 
   /* ── toggle helpers ── */
-  const toggleMic = () => {
-    const stream = localVideoRef.current?.srcObject;
-    if (!stream) return;
-    stream.getAudioTracks().forEach((t) => (t.enabled = !t.enabled));
-    setMicOn((p) => !p);
-  };
-
-  const toggleCam = () => {
-    const stream = localVideoRef.current?.srcObject;
-    if (!stream) return;
-    stream.getVideoTracks().forEach((t) => (t.enabled = !t.enabled));
-    setCamOn((p) => !p);
-  };
-
   /* ── copy room link ── */
   const handleCopyRoomLink = () => {
     const origin = window.location.origin;
@@ -831,7 +816,7 @@ export default function VideoCall({
           {/* Microphone Button */}
           <button
             className={`vc-btn ${!micOn ? 'vc-btn--off' : ''}`}
-            onClick={toggleMic}
+            onClick={onToggleMic}
             aria-label={micOn ? 'Mute microphone' : 'Unmute microphone'}
             title={micOn ? 'Mute Mic' : 'Unmute Mic'}
           >
@@ -846,7 +831,7 @@ export default function VideoCall({
           {/* Camera Button */}
           <button
             className={`vc-btn ${!camOn ? 'vc-btn--off' : ''}`}
-            onClick={toggleCam}
+            onClick={onToggleCamera}
             aria-label={camOn ? 'Turn off camera' : 'Turn on camera'}
             title={camOn ? 'Turn Off Cam' : 'Turn On Cam'}
           >

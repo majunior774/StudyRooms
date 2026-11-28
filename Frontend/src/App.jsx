@@ -164,6 +164,8 @@ function App() {
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraSwitching, setCameraSwitching] = useState(false);
   const [cameraError, setCameraError] = useState('');
+  const [micEnabled, setMicEnabled] = useState(true);
+  const [cameraEnabled, setCameraEnabled] = useState(true);
   const [focusTimerMode, setFocusTimerMode] = useState('focus25');
   const [focusTimerDuration, setFocusTimerDuration] = useState(25 * 60);
   const [focusTimeLeft, setFocusTimeLeft] = useState(25 * 60);
@@ -195,7 +197,25 @@ function App() {
   // Video / Audio Refs
   const localVideoRef = useRef(null);
   const localStreamRef = useRef(null);
+  const micEnabledRef = useRef(true);
+  const cameraEnabledRef = useRef(true);
   const cameraSwitchInProgressRef = useRef(false);
+
+  const updateMicEnabled = useCallback((enabled) => {
+    micEnabledRef.current = enabled;
+    localStreamRef.current?.getAudioTracks().forEach((track) => {
+      track.enabled = enabled;
+    });
+    setMicEnabled(enabled);
+  }, []);
+
+  const updateCameraEnabled = useCallback((enabled) => {
+    cameraEnabledRef.current = enabled;
+    localStreamRef.current?.getVideoTracks().forEach((track) => {
+      track.enabled = enabled;
+    });
+    setCameraEnabled(enabled);
+  }, []);
 
   // WebRTC Peer & Screen Share Refs
   const pendingCandidatesRef = useRef(new Map());
@@ -269,6 +289,12 @@ function App() {
   // ─── Camera Access (Only triggered in Lobby or Meeting) ───
   const startCamera = useCallback(async () => {
     if (localStreamRef.current) {
+      localStreamRef.current.getAudioTracks().forEach((track) => {
+        track.enabled = micEnabledRef.current;
+      });
+      localStreamRef.current.getVideoTracks().forEach((track) => {
+        track.enabled = cameraEnabledRef.current;
+      });
       setCameraReady(true);
       if (localVideoRef.current && localVideoRef.current.srcObject !== localStreamRef.current) {
         localVideoRef.current.srcObject = localStreamRef.current;
@@ -282,6 +308,12 @@ function App() {
         audio: true,
       });
       localStreamRef.current = stream;
+      stream.getAudioTracks().forEach((track) => {
+        track.enabled = micEnabledRef.current;
+      });
+      stream.getVideoTracks().forEach((track) => {
+        track.enabled = cameraEnabledRef.current;
+      });
       setCameraReady(true);
       setCameraError('');
       if (localVideoRef.current) {
@@ -1213,6 +1245,10 @@ function App() {
             cameraSwitching={cameraSwitching}
             cameraError={cameraError}
             cameraFacingMode={cameraFacingMode}
+            micEnabled={micEnabled}
+            cameraEnabled={cameraEnabled}
+            onToggleMic={() => updateMicEnabled(!micEnabledRef.current)}
+            onToggleCamera={() => updateCameraEnabled(!cameraEnabledRef.current)}
             onSwitchCamera={switchCamera}
             onJoinRoom={handleEnterMeeting}
             onCancel={handleCancelLobby}
@@ -1231,6 +1267,10 @@ function App() {
           remoteStreams={remoteStreams}
           roomTimer={roomTimer}
           participantNames={participantNames}
+          micEnabled={micEnabled}
+          cameraEnabled={cameraEnabled}
+          onToggleMic={() => updateMicEnabled(!micEnabledRef.current)}
+          onToggleCamera={() => updateCameraEnabled(!cameraEnabledRef.current)}
           cameraFacingMode={cameraFacingMode}
           cameraReady={cameraReady}
           cameraSwitching={cameraSwitching}
